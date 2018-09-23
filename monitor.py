@@ -3,6 +3,7 @@
 import serial
 import sys
 import time
+from datetime import datetime
 
 
 print("--------------Simple Serial Monitor-------------")
@@ -19,11 +20,14 @@ print("------------------------------------------------")
 with serial.Serial(sys.argv[1], sys.argv[2], timeout=1) as ser:
     while True:
         try:
-            time.sleep(0.1)
+            time.sleep(0.05)
             bytesToRead = ser.inWaiting() # get the amount of bytes available at the input queue
             if bytesToRead:
-                line = ser.read(bytesToRead)
-                print(line.strip().decode('utf-8'))
+                line = ser.read(ser.inWaiting())
+                # print(datetime.utcnow().strftime("(%H:%M:%S.%f) - ")[:-3])
+                print(line.strip().decode('utf-8'), end="")
+        except UnicodeDecodeError:
+            print("coulnd't decode character")
         except serial.SerialException:
             print("Monitor: Disconnected (Serial exception)")
             sys.exit(1)
