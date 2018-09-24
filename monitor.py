@@ -24,10 +24,11 @@ with serial.Serial(sys.argv[1], sys.argv[2], timeout=1) as ser:
             bytesToRead = ser.inWaiting() # get the amount of bytes available at the input queue
             if bytesToRead:
                 line = ser.read(ser.inWaiting())
-                # print(datetime.utcnow().strftime("(%H:%M:%S.%f) - ")[:-3])
-                print(line.strip().decode('utf-8'), end="")
+                print(line.decode('utf-8'), end="")
+                # print(line.strip().decode('utf-8'))
         except UnicodeDecodeError:
-            print("coulnd't decode character")
+            thing =1
+            # dont do anything..
         except serial.SerialException:
             print("Monitor: Disconnected (Serial exception)")
             sys.exit(1)
