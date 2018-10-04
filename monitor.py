@@ -3,10 +3,20 @@
 import serial
 import sys
 import time
+import os
 from datetime import datetime
 
+baud = 2000000
+os.system('cls' if os.name == 'nt' else 'clear')
 
 print("--------------Simple Serial Monitor-------------")
+
+if(len(sys.argv) > 3 or len(sys.argv) < 2):
+    print("Incorrect arguments. run with -h to see options")
+    sys.exit(1)
+
+if(len(sys.argv) == 3):
+    baud = sys.argv[2]
 
 if str(sys.argv[1]) == "-h":
     print("Useage:  * Arg_1: Port  * Arg_2: Baud           ")
@@ -14,10 +24,10 @@ if str(sys.argv[1]) == "-h":
     print("------------------------------------------------")
     sys.exit(1)
 
-print("This session: Port: " + str(sys.argv[1]) + " Baud: " + str(sys.argv[2]))
+print("This session: Port: /dev/tty" + str(sys.argv[1]) + " Baud: " + str(baud))
 print("------------------------------------------------")
 
-with serial.Serial(sys.argv[1], sys.argv[2], timeout=1) as ser:
+with serial.Serial("/dev/tty" + sys.argv[1], baud, timeout=1) as ser:
     while True:
         try:
             time.sleep(0.05)
