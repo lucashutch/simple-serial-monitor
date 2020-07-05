@@ -5,10 +5,9 @@ import sys
 import time
 import os
 from datetime import datetime
+import string
 
 baud = 2000000
-
-
 
 if(len(sys.argv) > 3 or len(sys.argv) < 2):
     print("Incorrect arguments. run with -h to see options")
@@ -41,17 +40,12 @@ if os.name == 'nt':
     serial_prefix = ""
 
 with serial.Serial(serial_prefix + sys.argv[1], baud, timeout=1) as ser:
+    ser.flush()
     while True:
         try:
-            time.sleep(0.05)
-            bytesToRead = ser.inWaiting() # get the amount of bytes available at the input queue
-            if bytesToRead:
-                line = ser.read(ser.inWaiting())
-                print(line.decode('utf-8'), end="")
-                # print(line.strip().decode('utf-8'))
-        except UnicodeDecodeError:
-            thing =1
-            # dont do anything..
+            line = ser.readline()
+            decoded_line = line.decode('utf-8', errors="ignore")
+            print(decoded_line, end="")
         except serial.SerialException:
             print("Monitor: Disconnected (Serial exception)")
             sys.exit(1)
