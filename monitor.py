@@ -2,51 +2,33 @@
 
 import serial
 import sys
-import time
 import os
-from datetime import datetime
-import string
+import argparse
 
-# clear screen
-os.system('cls' if os.name == 'nt' else 'clear')
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--port", type=str, default="ACM0",
+                        help="Specify the serial port to connect to, eg ACM0, USB0, COM3")
+    parser.add_argument("-b", "--baud", type=int, default=2000000,
+                        help="Baud rate to set the serial port to")
+    return parser.parse_args()
 
-baud = 2000000
-port = "ACM0"
-
-# make sure config file is loaded from script dir rather than cwd
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
-config_file_full_path = os.path.join(__location__,"config.txt")
-
-if(len(sys.argv) >= 2):
-    port = str(sys.argv[1])
-    if(len(sys.argv) == 3):
-        baud = sys.argv[2]
+def run_main_loop(port, baud):
+    # clear screen
+    if os.name == 'nt':
+        os.system('cls')
+        serial_prefix = ""
     else:
-        print("Baud not specified, using default")
-else:
-    try:
-        with open(config_file_full_path, "r") as config_file:
-            port = config_file.readline().strip()
-            baud = config_file.readline().strip()
-    except:
-        print("No config file or args. Using default")
-        pass
+        os.system('clear')
+        serial_prefix = "/dev/tty"
 
-print("This session: Port: /dev/tty" + port + " Baud: " + str(baud))
-print("------------------------------------------------")
-
-serial_prefix = "/dev/tty"
-if os.name == 'nt':
-    serial_prefix = ""
-
-def main():
-    with serial.Serial(serial_prefix + port, baud, timeout=1) as ser:
-        ser.flush()
+    print("This session: Port: {}{} {}".format(serial_prefix, port, baud))
+    print("----------------------------------------")
+        
+    with serial.Serial(serial_prefix + port, baud, timeout=0.01) as ser:
         while True:
             try:
-                line = ser.readline()
-                decoded_line = line.decode('utf-8', errors="ignore")
+                decoded_line = ser.readline().decode('utf-8', errors="ignore")
                 print(decoded_line, end='')
             except serial.SerialException:
                 print("Monitor: Disconnected (Serial exception)")
@@ -57,6 +39,12 @@ def main():
             except KeyboardInterrupt:
                 print("Monitor: Keyboard Interrupt. Exiting Now...")
                 sys.exit(1)
+
+def main():
+    args = parse_arguments()
+    print(args)
+    run_main_loop(args.port, args.baud)
+    
 
 if (__name__ == '__main__'): 
     main()
