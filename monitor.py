@@ -20,6 +20,8 @@ def parse_arguments():
                         help="filename used to save log files. Will appear as date_time_<filename>.txt")
     parser.add_argument("-ld", "--log-directory", type=str,
                         help="Folder to save logging file. Default is script directory")
+    parser.add_argument("-c", "--clear", action="store_true",
+                        help="Clear terminal before printing")
 
     return parser.parse_args()
 
@@ -77,10 +79,12 @@ def main():
 
     # clear screen
     if os.name == 'nt':
-        os.system('cls')
+        if args.clear:
+            os.system('cls')
         serial_prefix = ""
     else:
-        #os.system('clear')
+        if args.clear:
+            os.system('clear')
         serial_prefix = "/dev/tty"
 
     serial_port_name = "{}{}".format(serial_prefix, args.port)
