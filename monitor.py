@@ -6,7 +6,7 @@ import os
 import argparse
 import datetime
 import regex as re
-
+import time
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -47,13 +47,19 @@ def run_serial_printing_with_logs(serial_port_name, baud, log_file, log_director
 
 
 def run_serial_printing(serial_port_name, baud, file=None):
+    today = int(datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%s'))
     with serial.Serial(serial_port_name, baud, timeout=0.01) as ser:
         print("----------------------------------------")
         while True:
             try:
                 line = ser.readline()
                 decoded_line = line.decode('utf-8', errors="ignore")
-                print(decoded_line, end='')
+
+                if (len(decoded_line) > 0):
+                    print("{:.3f} ".format(time.time() - today) + decoded_line, end='')
+                else:
+                    print(decoded_line, end='')
+
                 if file:
                     colours_stripped = escape_ansi(decoded_line)
                     file.write(colours_stripped)
@@ -74,7 +80,7 @@ def main():
         os.system('cls')
         serial_prefix = ""
     else:
-        os.system('clear')
+        #os.system('clear')
         serial_prefix = "/dev/tty"
 
     serial_port_name = "{}{}".format(serial_prefix, args.port)
