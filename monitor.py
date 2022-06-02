@@ -59,8 +59,6 @@ def run_serial_printing(serial_port_name, baud, file=None):
 
                 if (len(decoded_line) > 0):
                     print("{:.3f} ".format(time.time() - today) + decoded_line, end='')
-                else:
-                    print(decoded_line, end='')
 
                 if file:
                     colours_stripped = escape_ansi(decoded_line)
