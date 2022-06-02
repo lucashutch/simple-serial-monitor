@@ -22,6 +22,8 @@ def parse_arguments():
                         help="Folder to save logging file. Default is script directory")
     parser.add_argument("-c", "--clear", action="store_true",
                         help="Clear terminal before printing")
+    parser.add_argument("-t", "--print_time", action="store_true",
+                        help="print system time on each log line")
 
     return parser.parse_args()
 
@@ -34,7 +36,7 @@ def escape_ansi(line):
     ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
     return ansi_escape.sub('', line)
 
-def run_serial_printing_with_logs(serial_port_name, baud, log_file, log_directory):
+def run_serial_printing_with_logs(serial_port_name, baud, print_time, log_file, log_directory):
     filename = "{}_{}.txt".format(
         (datetime.datetime.now()).strftime("%Y.%m.%d_%H.%M.%S"), log_file)
     if log_directory:
@@ -45,10 +47,10 @@ def run_serial_printing_with_logs(serial_port_name, baud, log_file, log_director
     print("Logging to: {}".format(logging_file))
 
     with open(logging_file, 'a+') as file:
-        run_serial_printing(serial_port_name, baud, file)
+        run_serial_printing(serial_port_name, baud, file, print_time)
 
 
-def run_serial_printing(serial_port_name, baud, file=None):
+def run_serial_printing(serial_port_name, baud, print_time, file=None):
     today = int(datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%s'))
     with serial.Serial(serial_port_name, baud, timeout=0.01) as ser:
         print("----------------------------------------")
@@ -58,7 +60,9 @@ def run_serial_printing(serial_port_name, baud, file=None):
                 decoded_line = line.decode('utf-8', errors="ignore")
 
                 if (len(decoded_line) > 0):
-                    print("{:.3f} ".format(time.time() - today) + decoded_line, end='')
+                    if print_time:
+                        print("{:.3f} ".format(time.time() - today), end='')
+                    print(decoded_line, end='')
 
                 if file:
                     colours_stripped = escape_ansi(decoded_line)
@@ -89,9 +93,9 @@ def main():
     print("This session: Port: {} {}".format(serial_port_name, args.baud))
     
     if args.log == True:
-        run_serial_printing_with_logs(serial_port_name, args.baud, args.log_file, args.log_directory)
+        run_serial_printing_with_logs(serial_port_name, args.baud, args.print_time, args.log_file, args.log_directory)
     else:
-        run_serial_printing(serial_port_name, args.baud)
+        run_serial_printing(serial_port_name, args.baud, args.print_time)
 
 
 if (__name__ == '__main__'):
