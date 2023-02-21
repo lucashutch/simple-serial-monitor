@@ -27,6 +27,25 @@ def parse_arguments():
 
     return parser.parse_args()
 
+def find_print_colour(input_text):
+    # pattern = r'\[(.*?)\]'
+    pattern = r'[\[\(](.*?)[\]\)]'
+    debug_level = re.findall(pattern, input_text)
+    if (len(debug_level) == 0):
+        return 0
+    debug_level = debug_level[0]
+    if (debug_level == 'W'):
+        return 93
+    elif (debug_level == 'E'):
+        return 91
+    elif (debug_level == 'I'):
+        return 92
+    else:
+        return 0
+
+def print_color( string):
+    colour = find_print_colour(string)
+    print("\033[{}m{}\033[0m".format(colour, string), end='')
 
 def print_and_quit(str):
     print(str)
@@ -56,16 +75,15 @@ def run_serial_printing(serial_port_name, baud, print_time, file=None):
         print("----------------------------------------")
         while True:
             try:
-                line = ser.readline()
-                decoded_line = line.decode('utf-8', errors="ignore")
+                line = ser.readline().decode('utf-8', errors="ignore")
 
-                if (len(decoded_line) > 0):
+                if (len(line) > 0):
                     if print_time:
                         print("{:.3f} ".format(time.time() - today), end='')
-                    print(decoded_line, end='')
+                    colours_stripped = escape_ansi(line)
+                    print_color(colours_stripped)
 
                 if file:
-                    colours_stripped = escape_ansi(decoded_line)
                     file.write(colours_stripped)
             except serial.SerialException:
                 print_and_quit("Monitor: Disconnected (Serial exception)")
