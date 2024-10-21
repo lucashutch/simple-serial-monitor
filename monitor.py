@@ -12,7 +12,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", type=str, default="ACM0",
                         help="Specify the serial port to connect to, eg ACM0, USB0, COM3")
-    parser.add_argument("-b", "--baud", type=int, default=2000000,
+    parser.add_argument("-b", "--baud", type=int, default=115200,
                         help="Baud rate to set the serial port to")
     parser.add_argument("-l", "--log", action="store_true",
                         help="save serial port data to log file")
