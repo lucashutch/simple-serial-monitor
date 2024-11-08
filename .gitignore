@@ -2,5 +2,3 @@
 .vscode/settings.json
 
 *log.txt
-
-run-clang-format.py
