@@ -47,7 +47,9 @@ def parse_arguments():
     parser.add_argument(
         "-t",
         "--print_time",
-        action="store_true",
+        type=str,
+        default="off",
+        choices=["off", "epoch", "hours", "ms"],
         help="print system time on each log line",
     )
     return parser.parse_args()
@@ -68,20 +70,27 @@ def run_serial_printing_with_logs(
     baud,
     log_file,
     log_directory,
-    print_time=None,
+    print_time,
 ):
-    filename = "{}_{}.txt".format(
-        (datetime.now()).strftime("%Y.%m.%d_%H.%M.%S"), log_file
-    )
+    filename = f"{datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}_{log_file}.txt"
     if log_directory:
-        logging_file = "{}/{}".format(log_directory, filename)
+        logging_file = f"{log_directory}/{filename}"
     else:
         script_location = os.path.dirname(os.path.realpath(__file__))
-        logging_file = "{}/{}".format(script_location, filename)
-    print("Logging to: {}".format(logging_file))
+        logging_file = f"{script_location}/{filename}"
+    print(f"Logging to: {logging_file}")
 
     with open(logging_file, "a+") as file:
         run_serial_printing(serial_port_name, baud, print_time, file)
+
+
+def add_time_to_line(print_time):
+    if "epoch" in print_time:
+        print(f"{datetime.now(timezone.utc).timestamp():.3f} ", end="")
+    elif "hours" in print_time:
+        print(f"{datetime.now(timezone.utc).time()} ", end="")
+    elif "ms" in print_time:
+        print(f"{datetime.now(timezone.utc).timestamp() * 1000:.0f} ", end="")
 
 
 def serial_loop(ser, print_time, file):
@@ -89,8 +98,7 @@ def serial_loop(ser, print_time, file):
         line = ser.readline().decode("utf-8", errors="ignore")
         if len(line) <= 0:
             continue
-        if print_time:
-            print("{:.3f} ".format(datetime.now(timezone.utc).timestamp()), end="")
+        add_time_to_line(print_time)
         print(line, end="")
 
         if file:
@@ -124,10 +132,10 @@ def main():
             os.system("clear")
         serial_prefix = "/dev/tty"
 
-    serial_port_name = "{}{}".format(serial_prefix, args.port)
-    print("This session: Port: {} {}".format(serial_port_name, args.baud))
+    serial_port_name = f"{serial_prefix}{args.port}"
+    print(f"This session: Port: {serial_port_name} {args.baud}")
 
-    if args.log == True:
+    if args.log is True:
         run_serial_printing_with_logs(
             serial_port_name,
             args.baud,
