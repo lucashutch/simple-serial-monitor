@@ -18,12 +18,12 @@ options:
   ```
 
 ## Examples
-### Collect logs from nrf devkit (/dev/ACM0 @ 115'200)
+### Collect logs (/dev/ACM0 @ 115'200)
 ```
 ./monitor.py
 ```
 
-### Collect logs from nrf devkit (/dev/ACM0 @ 115'200) clearing terminal before starting
+### Collect logs (/dev/ACM0 @ 115'200) clearing terminal before starting
 ```
 ./monitor.py
 ```

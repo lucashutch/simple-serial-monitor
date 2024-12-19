@@ -5,7 +5,6 @@ import sys
 import os
 import argparse
 import regex as re
-import time
 from datetime import datetime, timezone
 
 
@@ -55,11 +54,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def print_and_quit(str):
-    print(str)
-    sys.exit(1)
-
-
 def escape_ansi(line):
     ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", line)
@@ -80,17 +74,19 @@ def run_serial_printing_with_logs(
         logging_file = f"{script_location}/{filename}"
     print(f"Logging to: {logging_file}")
 
-    with open(logging_file, "a+") as file:
+    with open(logging_file, "a+", buffering=1) as file:
         run_serial_printing(serial_port_name, baud, print_time, file)
 
 
 def add_time_to_line(print_time):
     if "epoch" in print_time:
-        print(f"{datetime.now(timezone.utc).timestamp():.3f} ", end="")
+        return f"{datetime.now(timezone.utc).timestamp():.3f} "
     elif "hours" in print_time:
-        print(f"{datetime.now(timezone.utc).time()} ", end="")
+        return f"{datetime.now(timezone.utc).time()} "
     elif "ms" in print_time:
-        print(f"{datetime.now(timezone.utc).timestamp() * 1000:.0f} ", end="")
+        return f"{datetime.now(timezone.utc).timestamp() * 1000:.0f} "
+    else:
+        return ""
 
 
 def serial_loop(ser, print_time, file):
@@ -98,7 +94,7 @@ def serial_loop(ser, print_time, file):
         line = ser.readline().decode("utf-8", errors="ignore")
         if len(line) <= 0:
             continue
-        add_time_to_line(print_time)
+        line = f"{add_time_to_line(print_time)}{line}"
         print(line, end="")
 
         if file:
@@ -111,11 +107,13 @@ def run_serial_printing(serial_port_name, baud, print_time=None, file=None):
         try:
             serial_loop(ser, print_time, file)
         except serial.SerialException:
-            print_and_quit("Monitor: Disconnected (Serial exception)")
+            print(f"{os.path.basename(__file__)}: Disconnected (Serial exception)")
+            sys.exit(1)
         except IOError:
-            print_and_quit("Monitor: Disconnected (I/O Error)")
+            print(f"{os.path.basename(__file__)}: Disconnected (I/O Error)")
+            sys.exit(1)
         except KeyboardInterrupt:
-            print_and_quit("Monitor: Keyboard Interrupt. Exiting Now...")
+            sys.exit(0)
 
 
 def main():
