@@ -34,6 +34,7 @@ except ImportError:
 
 
 DEFAULT_FILE_MATCH = "CMakeLists.txt"
+DEFAULT_EXTENSIONS = 'cmake'
 DEFAULT_CMAKE_FORMAT_IGNORE = ".cmake-format-ignore"
 
 
@@ -85,6 +86,8 @@ def list_files(files, recursive=False, extensions=None, exclude=None):
                     fpaths = [x for x in fpaths if not fnmatch.fnmatch(x, pattern)]
                 for f in fpaths:
                     if DEFAULT_FILE_MATCH in f:
+                        out.append(f)
+                    if os.path.splitext(f)[1][1:] in extensions:
                         out.append(f)
         else:
             out.append(file)
@@ -252,6 +255,13 @@ def main():
         default="cmake-format",
     )
     parser.add_argument(
+        "--extensions",
+        help="comma separated list of file extensions (default: {})".format(
+            DEFAULT_EXTENSIONS
+        ),
+        default=DEFAULT_EXTENSIONS,
+    )
+    parser.add_argument(
         "-r",
         "--recursive",
         action="store_true",
@@ -343,7 +353,12 @@ def main():
     excludes = excludes_from_file(DEFAULT_CMAKE_FORMAT_IGNORE)
     excludes.extend(args.exclude)
 
-    files = list_files(args.files, recursive=args.recursive, exclude=excludes)
+    files = list_files(
+        args.files,
+        recursive=args.recursive,
+        exclude=excludes,
+        extensions=args.extensions.split(","),
+    )
 
     if not files:
         return
