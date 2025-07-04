@@ -4,13 +4,16 @@ import serial
 import sys
 import os
 import argparse
+import threading
 import regex as re
 import time
 from datetime import datetime, timezone
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 
 
 class colour_str:
+    """A helper class to chain color/style codes for terminal output."""
+
     def __init__(self, s: str):
         self.s = s
         self.codes = []
@@ -45,7 +48,10 @@ class colour_str:
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="A versatile serial monitor with read/write capabilities, logging, and auto-reconnect.",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument(
         "-p",
         "--port",
@@ -86,7 +92,11 @@ def parse_arguments():
         type=str,
         default="off",
         choices=["off", "epoch", "ms", "dt"],
-        help="print system time on each log line",
+        help="Print system time on each log line:\n"
+        "  off   - No timestamp\n"
+        "  epoch - Unix timestamp with ms (e.g., 1672531200.123)\n"
+        "  ms    - Milliseconds since epoch\n"
+        "  dt    - Human-readable datetime (e.g., 2023-01-01 10:00:00.123)",
     )
     return parser.parse_args()
 
@@ -101,7 +111,8 @@ def clear_terminal():
     # clear screen
     if os.name == "nt":
         os.system("cls")
-    os.system("clear")
+    else:
+        os.system("clear")
 
 
 def escape_ansi(line):
