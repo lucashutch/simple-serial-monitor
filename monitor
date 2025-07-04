@@ -5,7 +5,43 @@ import sys
 import os
 import argparse
 import regex as re
+import time
 from datetime import datetime, timezone
+from colorama import Fore, Back, Style
+
+
+class colour_str:
+    def __init__(self, s: str):
+        self.s = s
+        self.codes = []
+
+    def __str__(self) -> str:
+        """Applies the stored codes when the object is converted to a string."""
+        if not self.codes:
+            return self.s
+
+        prefix = "".join(self.codes)
+        return f"{prefix}{self.s}{Style.RESET_ALL}"
+
+    def _add_style(self, style_code: str) -> "colour_str":
+        """Adds a style code and returns self to allow chaining."""
+        self.codes.append(style_code)
+        return self
+
+    def red(self) -> "colour_str":
+        return self._add_style(Fore.RED)
+
+    def green(self) -> "colour_str":
+        return self._add_style(Fore.GREEN)
+
+    def yellow(self) -> "colour_str":
+        return self._add_style(Fore.YELLOW)
+
+    def dim(self) -> "colour_str":
+        return self._add_style(Style.DIM)
+
+    def bright(self) -> "colour_str":
+        return self._add_style(Style.BRIGHT)
 
 
 def parse_arguments():
@@ -14,7 +50,7 @@ def parse_arguments():
         "-p",
         "--port",
         type=str,
-        default="ACM0",
+        default="COM3" if os.name == "nt" else "ACM0",
         help="Specify the serial port to connect to, eg ACM0, USB0, COM3",
     )
     parser.add_argument(
@@ -49,7 +85,7 @@ def parse_arguments():
         "--print_time",
         type=str,
         default="off",
-        choices=["off", "epoch", "hours", "ms", "dt"],
+        choices=["off", "epoch", "ms", "dt"],
         help="print system time on each log line",
     )
     return parser.parse_args()
@@ -58,16 +94,14 @@ def parse_arguments():
 def get_serial_prefix():
     if os.name == "nt":
         return ""
-    else:
-        return "/dev/tty"
+    return "/dev/tty"
 
 
 def clear_terminal():
     # clear screen
     if os.name == "nt":
         os.system("cls")
-    else:
-        os.system("clear")
+    os.system("clear")
 
 
 def escape_ansi(line):
@@ -94,45 +128,56 @@ def run_serial_printing_with_logs(
 
 
 def add_time_to_line(print_time):
+    now_utc = datetime.now(timezone.utc)
     if "epoch" in print_time:
-        return f"{datetime.now(timezone.utc).timestamp():.3f} "
-    elif "hours" in print_time:
-        return f"{datetime.now(timezone.utc)}"
+        return f"{now_utc.timestamp():.3f} "
     elif "ms" in print_time:
-        return f"{datetime.now(timezone.utc).timestamp() * 1000:.0f} "
+        return f"{now_utc.timestamp() * 1000:.0f} "
     elif "dt" in print_time:
-        return (
-            f"{datetime.now(timezone.utc).date()}-{datetime.now(timezone.utc).time()} "
-        )
-    else:
-        return ""
+        return f"{now_utc.replace(tzinfo=None).isoformat(sep=' ', timespec='milliseconds')} "
+    return ""
 
 
 def serial_loop(ser, print_time, file):
     while True:
-        line = ser.readline().decode("utf-8", errors="ignore")
-        if len(line) <= 0:
+        if not (line := ser.readline().decode("utf-8", errors="ignore")):
             continue
         line = f"{add_time_to_line(print_time)}{line}"
         print(line, end="")
-
         if file:
             file.write(escape_ansi(line))  # strip colours
 
 
+def wait_with_spinner(serial_port_name, count):
+    loading_bars = ["[==    ]", "[  ==  ]", "[    ==]", "[  ==  ]"]
+    """Prints a spinning icon to show that the script is waiting."""
+    loading_char = loading_bars[count % len(loading_bars)]
+
+    # Construct the status text using your colour_str class
+    status_text = str(
+        colour_str(f"Waiting for {serial_port_name} {loading_char}").dim()
+    )
+
+    # Use carriage return '\r' to print over the same line
+    sys.stdout.write(f"\r{status_text}")
+    sys.stdout.flush()
+
+    return count + 1
+
+
 def run_serial_printing(serial_port_name, baud, print_time=None, file=None):
-    serial_port_name = f"{get_serial_prefix()}{serial_port_name}"
-    with serial.Serial(serial_port_name, baud, timeout=0.05) as ser:
-        print("----------------------------------------")
+    count = 0
+    while True:
         try:
-            serial_loop(ser, print_time, file)
+            time.sleep(0.2)
+            with serial.Serial(serial_port_name, baud, timeout=0.05) as ser:
+                count = 0
+                print("\n" + f" ✅ Connected to {serial_port_name} ".center(50, "-"))
+                serial_loop(ser, print_time, file)
         except serial.SerialException:
-            print(f"{os.path.basename(__file__)}: Disconnected (Serial exception)")
-            sys.exit(1)
-        except IOError:
-            print(f"{os.path.basename(__file__)}: Disconnected (I/O Error)")
-            sys.exit(1)
+            count = wait_with_spinner(serial_port_name, count)
         except KeyboardInterrupt:
+            print(colour_str(f"\nClosed {serial_port_name}.").dim().green())
             sys.exit(0)
 
 
@@ -142,18 +187,19 @@ def main():
     if args.clear:
         clear_terminal()
 
-    print(args)
+    print(colour_str(f"{args}").dim())
+    serial_port_name = f"{get_serial_prefix()}{args.port}"
 
     if args.log:
         run_serial_printing_with_logs(
-            args.port,
+            serial_port_name,
             args.baud,
             args.log_file,
             args.log_directory,
             args.print_time,
         )
     else:
-        run_serial_printing(args.port, args.baud, args.print_time)
+        run_serial_printing(serial_port_name, args.baud, args.print_time)
 
 
 if __name__ == "__main__":
