@@ -23,15 +23,11 @@ FORMATTER_CONFIG: Dict[str, Dict[str, Any]] = {
             ".c", ".cpp", ".cxx", ".cc",
         },
         "file_names": set(),
-        "config_files": [".clang-format"],
     },
     "cmake-format": {
         "command": "cmake-format",
         "file_extensions": {".cmake"},
         "file_names": {"CMakeLists.txt"},
-        "config_files": [
-            ".cmakde-format.py", ".cmaked-format.yaml", ".cmaked-format.json",
-        ],
     },
 }  # fmt: on
 
@@ -145,10 +141,40 @@ def run_formatter_parallel(
         print("✅ All files are already correctly formatted. No changes made.")
 
 
-def main():
-    """
-    Main function to parse arguments and run all formatters.
-    """
+def format_project(
+    root_dir: str,
+    ignore_dirs: list = [],
+    jobs: Optional[int] = None,
+    verbose: bool = False,
+):
+    project_root = Path(root_dir).resolve()
+    ignore_paths = [project_root / d for d in ignore_dirs]
+
+    print(f"🚀 Scanning for all source files in: {project_root}")
+
+    # Finding all files to format
+    files_to_format = find_all_files(project_root, ignore_paths, verbose)
+
+    # Format all files found with the appropriate formatter.
+    run_formatter_parallel(files_to_format, project_root, jobs, verbose)
+
+
+def check_for_tools():
+    # Check that all configured tools are installed before running
+    all_tools_found = True
+    for config in FORMATTER_CONFIG.values():
+        command = config["command"]
+        try:
+            subprocess.run([command, "--version"], check=True, capture_output=True)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            print(f"❌ Error: '{command}' not found.")
+            all_tools_found = False
+
+    if not all_tools_found:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="A universal script to format all source files (C++, CMake, etc.) in parallel.",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -165,41 +191,7 @@ def main():
 
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
     # fmt: on
-
     args = parser.parse_args()
-    project_root = Path(args.root_dir).resolve()
-    ignore_paths = [project_root / d for d in args.ignore]
 
-    # Check for configuration files for all supported tools
-    for config in FORMATTER_CONFIG.values():
-        if not any((project_root / f).is_file() for f in config["config_files"]):
-            print(
-                f"⚠️  Warning: No {config['command']} configuration file found in the project root.\n",
-                f"  {config['command']} will use its default style.",
-                file=sys.stderr,
-            )
-
-    print(f"🚀 Scanning for all source files in: {project_root}")
-    files_to_format = find_all_files(project_root, ignore_paths, args.verbose)
-    run_formatter_parallel(files_to_format, project_root, args.jobs, args.verbose)
-
-
-if __name__ == "__main__":
-    # Check that all configured tools are installed before running
-    all_tools_found = True
-    for config in FORMATTER_CONFIG.values():
-        command = config["command"]
-        try:
-            subprocess.run(
-                [config["command"], "--version"], check=True, capture_output=True
-            )
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            print(
-                f"❌ Error: '{config['command']}' is not installed or not in your PATH."
-            )
-            all_tools_found = False
-
-    if not all_tools_found:
-        sys.exit(1)
-
-    main()
+    check_for_tools()
+    format_project(args.root_dir, args.ignore, args.jobs, args.verbose)
