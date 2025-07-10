@@ -177,7 +177,6 @@ def check_for_tools():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="A universal script to format all source files (C++, CMake, etc.) in parallel.",
-        formatter_class=argparse.RawTextHelpFormatter,
     )
     # fmt: off
     parser.add_argument("root_dir", nargs="?", default=".",
