@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import argparse
+from pathlib import Path
 
 try:
     max_width = min(os.get_terminal_size()[0], 80)
@@ -12,15 +13,14 @@ def has_crlf_endings(file_path):
     """Checks if a file has CRLF ('\r\n') line endings."""
     try:
         with open(file_path, "rb") as f:
-            # Reading the file in chunks can be more memory-efficient for huge files,
-            # but for typical source code files, reading it all is fast.
             content = f.read()
-            if b"\r\n" in content:
-                # Ensure it's not a binary file that happens to contain the CRLF sequence.
-                # This simple check for a NULL byte is a heuristic that works for most text files.
-                if b"\0" in content:
-                    return False  # Likely a binary file, ignore it.
-                return True
+            if b"\r\n" not in content:
+                return False
+            # Ensure it's not a binary file that happens to contain the CRLF sequence.
+            # This simple check for a NULL byte is a heuristic that works for most text files.
+            if b"\0" in content:
+                return False  # Likely a binary file, ignore it.
+            return True
     except (IOError, OSError) as e:
         print(f"Error reading file: {file_path} - {e}")
     return False
@@ -30,28 +30,24 @@ def find_crlf_files(root_path, excluded_dirs=None):
     """
     Finds files with CRLF line endings in a directory, excluding specified subdirectories.
     """
-    if excluded_dirs is None:
-        excluded_dirs = []
+    root_path = Path(root_path).resolve()
+    excluded_dir_paths = set()
+    if excluded_dirs:
+        excluded_dir_paths = {Path(d).resolve() for d in excluded_dirs}
 
     crlf_files = []
-
     for root, dirs, files in os.walk(root_path):
-        # Prune directories to prevent walking into them
         dirs[:] = [
-            d
-            for d in dirs
-            if os.path.abspath(os.path.join(root, d)) not in excluded_dirs
+            d for d in dirs if (Path(root) / d).resolve() not in excluded_dir_paths
         ]
 
         for filename in files:
-            file_path = os.path.join(root, filename)
-
-            if os.path.islink(file_path):
+            file_path = Path(root) / filename
+            if file_path.is_symlink():
                 continue
 
             if has_crlf_endings(file_path):
-                # Get the relative path for cleaner output
-                crlf_files.append(os.path.relpath(file_path, root_path))
+                crlf_files.append(str(file_path.relative_to(root_path)))
 
     return crlf_files
 
