@@ -8,39 +8,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any
 import concurrent.futures
 import difflib
-from colorama import Fore, Style
-
-
-class colour_str:
-    """A helper class to chain color/style codes for terminal output."""
-
-    def __init__(self, s: str):
-        self.s = s
-        self.codes = []
-
-    def __str__(self) -> str:
-        if not self.codes:
-            return self.s
-        return f"{''.join(self.codes)}{self.s}{Style.RESET_ALL}"
-
-    def _add_style(self, style_code: str) -> "colour_str":
-        self.codes.append(style_code)
-        return self
-
-    def red(self) -> "colour_str":
-        return self._add_style(Fore.RED)
-
-    def green(self) -> "colour_str":
-        return self._add_style(Fore.GREEN)
-
-    def yellow(self) -> "colour_str":
-        return self._add_style(Fore.YELLOW)
-
-    def dim(self) -> "colour_str":
-        return self._add_style(Style.DIM)
-
-    def bright(self) -> "colour_str":
-        return self._add_style(Style.BRIGHT)
+from simple_utils import colour_str
 
 
 try:

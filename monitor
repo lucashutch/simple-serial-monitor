@@ -4,47 +4,12 @@ import serial
 import sys
 import os
 import argparse
-import threading
 import regex as re
 import time
 from datetime import datetime, timezone
-from colorama import Fore, Style
+from simple_utils import colour_str
 
-
-class colour_str:
-    """A helper class to chain color/style codes for terminal output."""
-
-    def __init__(self, s: str):
-        self.s = s
-        self.codes = []
-
-    def __str__(self) -> str:
-        """Applies the stored codes when the object is converted to a string."""
-        if not self.codes:
-            return self.s
-
-        prefix = "".join(self.codes)
-        return f"{prefix}{self.s}{Style.RESET_ALL}"
-
-    def _add_style(self, style_code: str) -> "colour_str":
-        """Adds a style code and returns self to allow chaining."""
-        self.codes.append(style_code)
-        return self
-
-    def red(self) -> "colour_str":
-        return self._add_style(Fore.RED)
-
-    def green(self) -> "colour_str":
-        return self._add_style(Fore.GREEN)
-
-    def yellow(self) -> "colour_str":
-        return self._add_style(Fore.YELLOW)
-
-    def dim(self) -> "colour_str":
-        return self._add_style(Style.DIM)
-
-    def bright(self) -> "colour_str":
-        return self._add_style(Style.BRIGHT)
+ASNI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def parse_arguments():
@@ -122,11 +87,6 @@ def clear_terminal():
         os.system("clear")
 
 
-def escape_ansi(line):
-    ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
-    return ansi_escape.sub("", line)
-
-
 def run_serial_printing_with_logs(
     serial_port_name,
     baud,
@@ -159,11 +119,10 @@ def add_time_to_line(print_time):
 
 def create_replacement_lambda(current_line_state):
     def find_and_replace(match):
-        ansi_escape_pattern = re.compile(r"\x1b\[[0-9;]*m")
         # Part of the line before the current match
         pre_match_str = current_line_state[: match.start()]
         # Find all ANSI codes before the match
-        preceding_codes = ansi_escape_pattern.findall(pre_match_str)
+        preceding_codes = ASNI_ESCAPE_PATTERN.findall(pre_match_str)
         # Determine the last active color state
         last_state = ""
         if preceding_codes:
@@ -171,9 +130,7 @@ def create_replacement_lambda(current_line_state):
             last_reset_index = -1
             try:
                 last_reset_index = max(
-                    i
-                    for i, code in enumerate(preceding_codes)
-                    if code == Style.RESET_ALL
+                    i for i, code in enumerate(preceding_codes) if code == "\x1b[0m"
                 )
             except ValueError:
                 pass
@@ -208,7 +165,7 @@ def serial_loop(ser, print_time, file, highlight_words=None):
 
         print(line, end="")
         if file:
-            file.write(escape_ansi(line))  # strip colours for log file
+            file.write(ASNI_ESCAPE_PATTERN.sub("", line))  # strip colours for log file
 
 
 def wait_with_spinner(serial_port_name, count):
