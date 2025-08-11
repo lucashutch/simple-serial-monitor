@@ -98,6 +98,13 @@ def parse_arguments():
         "  ms    - Milliseconds since epoch\n"
         "  dt    - Human-readable datetime (e.g., 2023-01-01 10:00:00.123)",
     )
+    parser.add_argument(
+        "--highlight",
+        type=str,
+        default=None,
+        help="Comma-separated list of words to highlight (case-insensitive).\n"
+        "Example: --highlight=error,warning,fail",
+    )
     return parser.parse_args()
 
 
@@ -126,6 +133,7 @@ def run_serial_printing_with_logs(
     log_file,
     log_directory,
     print_time,
+    highlight_words=None,
 ):
     filename = f"{datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}_{log_file}.txt"
     if not os.path.isdir(log_directory):
@@ -135,7 +143,7 @@ def run_serial_printing_with_logs(
     print(f"Logging to: {logging_file}")
 
     with open(logging_file, "a+", buffering=1) as file:
-        run_serial_printing(serial_port_name, baud, print_time, file)
+        run_serial_printing(serial_port_name, baud, print_time, file, highlight_words)
 
 
 def add_time_to_line(print_time):
@@ -149,14 +157,58 @@ def add_time_to_line(print_time):
     return ""
 
 
-def serial_loop(ser, print_time, file):
+def create_replacement_lambda(current_line_state):
+    def find_and_replace(match):
+        ansi_escape_pattern = re.compile(r"\x1b\[[0-9;]*m")
+        # Part of the line before the current match
+        pre_match_str = current_line_state[: match.start()]
+        # Find all ANSI codes before the match
+        preceding_codes = ansi_escape_pattern.findall(pre_match_str)
+        # Determine the last active color state
+        last_state = ""
+        if preceding_codes:
+            # Find the position of the last "reset" code
+            last_reset_index = -1
+            try:
+                last_reset_index = max(
+                    i
+                    for i, code in enumerate(preceding_codes)
+                    if code == Style.RESET_ALL
+                )
+            except ValueError:
+                pass
+
+            # The active state is the sequence of codes after the last reset
+            if last_reset_index != -1:
+                active_codes = preceding_codes[last_reset_index + 1 :]
+            else:
+                active_codes = preceding_codes
+            last_state = "".join(active_codes)
+
+        return f"{colour_str(match.group()).back_green().black()}{last_state}"
+
+    return find_and_replace
+
+
+def serial_loop(ser, print_time, file, highlight_words=None):
     while True:
         if not (line := ser.readline().decode("utf-8", errors="ignore")):
             continue
         line = f"{add_time_to_line(print_time)}{line}"
+        if highlight_words:
+            for word in highlight_words:
+                if not word:  # Skip empty strings from splitting
+                    continue
+                line = re.sub(
+                    re.escape(word),
+                    create_replacement_lambda(line),
+                    line,
+                    flags=re.IGNORECASE,
+                )
+
         print(line, end="")
         if file:
-            file.write(escape_ansi(line))  # strip colours
+            file.write(escape_ansi(line))  # strip colours for log file
 
 
 def wait_with_spinner(serial_port_name, count):
@@ -176,7 +228,9 @@ def wait_with_spinner(serial_port_name, count):
     return count + 1
 
 
-def run_serial_printing(serial_port_name, baud, print_time=None, file=None):
+def run_serial_printing(
+    serial_port_name, baud, print_time=None, file=None, highlight_words=None
+):
     count = 0
     while True:
         try:
@@ -184,7 +238,7 @@ def run_serial_printing(serial_port_name, baud, print_time=None, file=None):
             with serial.Serial(serial_port_name, baud, timeout=0.05) as ser:
                 count = 0
                 print("\n" + f" ✅ Connected to {serial_port_name} ".center(50, "-"))
-                serial_loop(ser, print_time, file)
+                serial_loop(ser, print_time, file, highlight_words)
         except serial.SerialException:
             count = wait_with_spinner(serial_port_name, count)
         except KeyboardInterrupt:
@@ -201,6 +255,11 @@ def main():
     print(colour_str(f"{args}").dim())
     serial_port_name = f"{get_serial_prefix()}{args.port}"
 
+    highlight_words = []
+    if args.highlight:
+        # Process a comma-separated string, also removing potential brackets
+        highlight_words = args.highlight.strip("[]").split(",")
+
     if args.log:
         run_serial_printing_with_logs(
             serial_port_name,
@@ -208,9 +267,12 @@ def main():
             args.log_file,
             args.log_directory,
             args.print_time,
+            highlight_words,
         )
     else:
-        run_serial_printing(serial_port_name, args.baud, args.print_time)
+        run_serial_printing(
+            serial_port_name, args.baud, args.print_time, None, highlight_words
+        )
 
 
 if __name__ == "__main__":
