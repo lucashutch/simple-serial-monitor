@@ -4,5 +4,6 @@
 *log.txt
 
 logs/
+*log*.zip
 
 __pycache__/
