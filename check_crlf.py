@@ -1,83 +1,101 @@
 #!/usr/bin/env python3
-import os
+import sys
+import shutil
 import argparse
 from pathlib import Path
 
 try:
-    max_width = min(os.get_terminal_size()[0], 80)
-except OSError:
-    max_width = 80  # Fallback to a default width if not running in a terminal
+    MAX_WIDTH = min(shutil.get_terminal_size()[0], 80)
+except (ValueError, OSError):
+    MAX_WIDTH = 80
 
 
-def has_crlf_endings(file_path):
-    """Checks if a file has CRLF ('\r\n') line endings."""
+def has_crlf_endings(file_path: Path) -> bool:
+    """Checks if a file has CRLF ('\\r\\n') line endings using pathlib features."""
     try:
-        with open(file_path, "rb") as f:
-            content = f.read()
-            if b"\r\n" not in content:
-                return False
-            # Ensure it's not a binary file that happens to contain the CRLF sequence.
-            # This simple check for a NULL byte is a heuristic that works for most text files.
-            if b"\0" in content:
-                return False  # Likely a binary file, ignore it.
-            return True
-    except (IOError, OSError) as e:
+        content = file_path.read_bytes()
+        if b"\r\n" not in content:
+            return False
+
+        # Binary heuristic: Check for NULL byte
+        if b"\0" in content:
+            return False
+
+        return True
+    except (OSError, PermissionError) as e:
         print(f"Error reading file: {file_path} - {e}")
     return False
 
 
-def find_crlf_files(root_path, excluded_dirs=None):
+def scan_directory(root_path: Path, excluded_paths: set[Path]):
     """
-    Finds files with CRLF line endings in a directory, excluding specified subdirectories.
+    Recursively yields files, skipping excluded directories.
     """
-    root_path = Path(root_path).resolve()
-    excluded_dir_paths = set()
-    if excluded_dirs:
-        excluded_dir_paths = {Path(d).resolve() for d in excluded_dirs}
-
-    crlf_files = []
-    for root, dirs, files in os.walk(root_path):
-        dirs[:] = [
-            d for d in dirs if (Path(root) / d).resolve() not in excluded_dir_paths
-        ]
-
-        for filename in files:
-            file_path = Path(root) / filename
-            if file_path.is_symlink():
+    try:
+        # We iterate manually to allow pruning (skipping) directories efficiently
+        for item in root_path.iterdir():
+            if item.is_symlink():
                 continue
 
-            if has_crlf_endings(file_path):
-                crlf_files.append(str(file_path.relative_to(root_path)))
+            if item.is_dir():
+                # Check exclusion before descending
+                if item.resolve() in excluded_paths:
+                    continue
+                # Recurse
+                yield from scan_directory(item, excluded_paths)
+            else:
+                yield item
 
-    return crlf_files
+    except PermissionError:
+        print(f"⚠️  Permission denied: {root_path}")
 
 
-def check_crlf_in_root(repo_path: str, ignore_dirs: list, verbose: bool = False):
-    if not os.path.isdir(repo_path):
+def resolve_ignore_dirs(root: Path, ignore_patterns: list[str]) -> set[Path]:
+    """
+    Resolves ignore patterns (including globs) to absolute Path objects.
+    """
+    resolved_ignores = set()
+    for pattern in ignore_patterns:
+        for path in root.glob(pattern):
+            if path.is_dir():
+                resolved_ignores.add(path.resolve())
+
+    return resolved_ignores
+
+
+def check_crlf_in_root(
+    repo_path: Path, ignore_patterns: list[str], verbose: bool = False
+):
+    if not repo_path.is_dir():
         print(f"Error: Directory not found at '{repo_path}'")
-        exit(1)
+        sys.exit(1)
 
     print(f"🔍 Checking for CRLF line endings in: {repo_path}")
 
-    # Get absolute paths for reliable matching
-    abs_ignore_dirs = [os.path.abspath(os.path.join(repo_path, d)) for d in ignore_dirs]
+    # Resolve ignore patterns to actual paths
+    ignored_dirs = resolve_ignore_dirs(repo_path, ignore_patterns)
 
-    if verbose and ignore_dirs:
-        print(" Ignored Directories ".center(max_width, "-"))
-        for d in abs_ignore_dirs:
+    if verbose and ignored_dirs:
+        print(" Ignored Directories ".center(MAX_WIDTH, "-"))
+        for d in sorted(ignored_dirs):
             print(f"\t🚫 {d}")
 
-    crlf_files_found = find_crlf_files(repo_path, abs_ignore_dirs)
+    crlf_files_found = []
+
+    # Use the custom scanner
+    for file_path in scan_directory(repo_path, ignored_dirs):
+        if has_crlf_endings(file_path):
+            # Calculate relative path for cleaner output using pathlib
+            crlf_files_found.append(file_path.relative_to(repo_path))
 
     if crlf_files_found:
         print("🚨 Found files with CRLF line endings:")
         for file_path in sorted(crlf_files_found):
             print(f"  - {file_path}")
-        # Exit with a non-zero status code for CI/CD pipeline integration
-        exit(1)
+        sys.exit(1)
     else:
         print("✅ No files with CRLF line endings were found.")
-        exit(0)
+        sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -89,10 +107,16 @@ if __name__ == "__main__":
     parser.add_argument("root_dir", nargs="?", default=".",
         help="The root directory to scan (default: current directory)")
     parser.add_argument("--ignore", "-i", nargs="+", metavar="DIR", default=[],
-        help="One or more directories to ignore.\n(e.g., --ignore build third-party)")
+        help="One or more directories to ignore (accepts globs).\n(e.g., --ignore build dist '**/__pycache__')")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
     # fmt: on
     args = parser.parse_args()
 
-    repo_path = os.path.abspath(args.root_dir)
-    check_crlf_in_root(repo_path, args.ignore, args.verbose)
+    # Convert string argument to a resolved Path object immediately
+    root_path = Path(args.root_dir).resolve()
+
+    try:
+        check_crlf_in_root(root_path, args.ignore, args.verbose)
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user.")
+        sys.exit(130)

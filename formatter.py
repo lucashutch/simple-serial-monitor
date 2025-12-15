@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
+import shutil
 import subprocess
 import sys
-from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Any
 import concurrent.futures
 import difflib
+from pathlib import Path
+from typing import List, Tuple, Optional, Dict, Any, Set, Generator
 from simple_utils import colour_str
 
 
 try:
-    max_width = min(os.get_terminal_size()[0], 80)
-except OSError:
-    max_width = 80
+    MAX_WIDTH = min(shutil.get_terminal_size()[0], 80)
+except (ValueError, OSError):
+    MAX_WIDTH = 80
 
 FORMATTER_CONFIG: Dict[str, Dict[str, Any]] = {
     "clang-format": {
@@ -30,16 +30,58 @@ FORMATTER_CONFIG: Dict[str, Dict[str, Any]] = {
 }
 
 
+def resolve_ignore_dirs(root: Path, patterns: List[str]) -> Set[Path]:
+    """
+    Resolves a list of ignore patterns (e.g., 'build', '**/vendor', '*/temp')
+    into a set of absolute Path objects.
+    """
+    resolved = set()
+    for pattern in patterns:
+        # pathlib glob allows patterns like '**/build' or 'build'
+        for path in root.glob(pattern):
+            if path.is_dir():
+                resolved.add(path.resolve())
+    return resolved
+
+
+def scan_directory(
+    root_path: Path, excluded_paths: Set[Path]
+) -> Generator[Path, None, None]:
+    """
+    Recursively yields files, skipping excluded directories.
+    Uses pathlib.iterdir() for manual traversal control.
+    """
+    try:
+        for item in root_path.iterdir():
+            if item.is_symlink():
+                continue
+
+            if item.is_dir():
+                # If this directory is in our exclusion list, skip it entirely
+                if item.resolve() in excluded_paths:
+                    continue
+                yield from scan_directory(item, excluded_paths)
+            else:
+                yield item
+    except PermissionError:
+        print(f"⚠️  Permission denied: {root_path}", file=sys.stderr)
+
+
 def find_all_files(
-    root_dir: Path, ignore_dirs: List[Path], verbose: bool
+    root_dir: Path, ignore_patterns: List[str], verbose: bool
 ) -> Dict[Path, Dict[str, Any]]:
-    """Finds all files for all configured formatters."""
+    """Finds all files for all configured formatters, respecting ignore globs."""
+
     files_with_config: Dict[Path, Dict[str, Any]] = {}
-    absolute_ignore_dirs = {d.resolve() for d in ignore_dirs}
-    if verbose and ignore_dirs:
-        print(" Ignored Directories ".center(max_width, "-"))
-        for d in absolute_ignore_dirs:
+    absolute_ignore_dirs = resolve_ignore_dirs(root_dir, ignore_patterns)
+
+    if verbose and ignore_patterns:
+        print(" Ignored Directories ".center(MAX_WIDTH, "-"))
+        if not absolute_ignore_dirs:
+            print("  (No directories matched the ignore patterns)")
+        for d in sorted(absolute_ignore_dirs):
             print(f"  🚫 {d}")
+
     if not root_dir.is_dir():
         msg = f"Error: Root directory '{root_dir}' not found."
         print(colour_str(msg).red(), file=sys.stderr)
@@ -55,23 +97,14 @@ def find_all_files(
         for config in FORMATTER_CONFIG.values()
         for ext in config.get("file_extensions", [])
     }
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        # prevents os.walk from ever entering into ignored directories
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if (Path(dirpath) / d).resolve() not in absolute_ignore_dirs
-        ]
-        files_with_config.update(
-            {
-                Path(dirpath) / filename: config
-                for filename in filenames
-                if (
-                    config := name_lookup.get(filename)
-                    or extension_lookup.get(os.path.splitext(filename)[1])
-                )
-            }
-        )
+
+    for file_path in scan_directory(root_dir, absolute_ignore_dirs):
+        config = name_lookup.get(file_path.name)
+        if not config:
+            config = extension_lookup.get(file_path.suffix)
+        if config:
+            files_with_config[file_path] = config
+
     return files_with_config
 
 
@@ -84,14 +117,17 @@ def process_one_file(
     """
     try:
         original_content = file_path.read_bytes()
+        cmd_args = [command, str(file_path)]
+        if not check:
+            cmd_args.append("-i")  # In-place flag
+
+        result = subprocess.run(cmd_args, check=True, capture_output=True)
 
         if check:
-            cmd = [command, str(file_path)]
-            result = subprocess.run(cmd, check=True, capture_output=True)
+            # In check mode, stdout usually contains the formatted file content
             new_content = result.stdout
         else:
-            cmd = [command, str(file_path), "-i"]
-            result = subprocess.run(cmd, check=True, capture_output=True)
+            # In in-place mode, we must re-read the file to compare
             new_content = file_path.read_bytes()
 
         if original_content == new_content:
@@ -103,7 +139,10 @@ def process_one_file(
         # Generate a diff for check mode
         original_lines = original_content.decode("utf-8", "ignore").splitlines()
         new_lines = new_content.decode("utf-8", "ignore").splitlines()
+
         diff = difflib.unified_diff(original_lines, new_lines, lineterm="")
+
+        # Filter for just the changes (skipping the +++ and --- headers)
         changed_lines = [
             line
             for line in diff
@@ -131,7 +170,7 @@ def process_files_parallel(
         return
 
     if verbose:
-        print(" Files Found ".center(max_width, "-"))
+        print(" Files Found ".center(MAX_WIDTH, "-"))
         for f in sorted(files_with_config.keys()):
             print(f"  📄 {f.relative_to(project_root)}")
 
@@ -147,9 +186,11 @@ def process_files_parallel(
         }
         for future in concurrent.futures.as_completed(future_to_file):
             try:
-                path, was_changed, data = future.result()
+                path_str, was_changed, data = future.result()
                 if was_changed:
-                    results.append((str(Path(path).relative_to(project_root)), data))
+                    # Convert string back to Path for relative_to calc
+                    rel_path = Path(path_str).relative_to(project_root)
+                    results.append((str(rel_path), data))
             except Exception as e:
                 msg = f"A task generated an exception: {e}"
                 print(colour_str(msg).red(), file=sys.stderr)
@@ -160,14 +201,15 @@ def process_files_parallel(
             print(colour_str(msg).green())
             return
 
-        print("\n" + " Files Requiring Formatting ".center(max_width, "-"))
+        print("\n" + " Files Requiring Formatting ".center(MAX_WIDTH, "-"))
         for f_path, diff_text in sorted(results):
             print(f"\n{colour_str(f'❌ {f_path}').yellow()}")
-            for line in diff_text.splitlines():
-                if line.startswith("+"):
-                    print(colour_str(line).green())
-                elif line.startswith("-"):
-                    print(colour_str(line).red())
+            if diff_text:
+                for line in diff_text.splitlines():
+                    if line.startswith("+"):
+                        print(colour_str(line).green())
+                    elif line.startswith("-"):
+                        print(colour_str(line).red())
         msg = f"❌ Check failed. {len(results)} files require formatting."
         print(f"\n{colour_str(msg).red().bright()}")
         sys.exit(1)
@@ -177,35 +219,33 @@ def process_files_parallel(
             print("✅ All files are already correctly formatted. No changes made.")
             return
 
-        print(" Files Reformatted ".center(max_width, "-"))
+        print(" Files Reformatted ".center(MAX_WIDTH, "-"))
         for f_path, _ in sorted(results):
             print(colour_str(f"  ✨ {f_path}").green())
         print(f"✅ Done. {len(results)} files were reformatted.")
 
 
 def run_project_tasks(
-    root_dir: str,
-    ignore_dirs: list = [],
+    root_dir: Path,
+    ignore_patterns: list = [],
     jobs: Optional[int] = None,
     verbose: bool = False,
     check: bool = False,
 ):
-    project_root = Path(root_dir).resolve()
-    ignore_paths = [project_root / d for d in ignore_dirs]
-    print(f"🚀 Scanning for all source files in: {project_root}")
-    files_to_process = find_all_files(project_root, ignore_paths, verbose)
-    process_files_parallel(files_to_process, project_root, jobs, verbose, check)
+    print(f"🚀 Scanning for all source files in: {root_dir}")
+    files_to_process = find_all_files(root_dir, ignore_patterns, verbose)
+    process_files_parallel(files_to_process, root_dir, jobs, verbose, check)
 
 
 def check_for_tools():
     all_tools_found = True
+    # Check if tools exist using shutil.which (cleaner than subprocess)
     for config in FORMATTER_CONFIG.values():
         command = config["command"]
-        try:
-            subprocess.run([command, "--version"], check=True, capture_output=True)
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            print(colour_str(f"❌ Error: '{command}' not found.").red())
+        if shutil.which(command) is None:
+            print(colour_str(f"❌ Error: '{command}' not found in PATH.").red())
             all_tools_found = False
+
     if not all_tools_found:
         sys.exit(1)
 
@@ -218,8 +258,8 @@ if __name__ == "__main__":
     parser.add_argument("root_dir", nargs="?", default=".",
         help="The root directory to scan (default: current directory)")
 
-    parser.add_argument("--ignore", "-i", nargs="+", metavar="DIR", default=[],
-        help="One or more directories to ignore.\n(e.g., --ignore build third-party)")
+    parser.add_argument("--ignore", "-i", nargs="+", metavar="PATTERN", default=[],
+        help="One or more directory patterns to ignore.\n(e.g., --ignore build '**/__pycache__' '*/temp')")
 
     parser.add_argument("-j","--jobs",type=int, default=None,
         help="The number of concurrent jobs to run.\n(default: all available CPU cores)")
@@ -228,9 +268,20 @@ if __name__ == "__main__":
         help="Enable verbose output.")
 
     parser.add_argument("--check", "-c", action="store_true",
-        help="Run in 'check only' mode. Outputs files requiring changes and the associates required changes")
+        help="Run in 'check only' mode. Outputs files requiring changes and the associated required changes")
     # fmt: on
 
     args = parser.parse_args()
+
+    # Resolve root path immediately
+    project_root = Path(args.root_dir).resolve()
+
     check_for_tools()
-    run_project_tasks(args.root_dir, args.ignore, args.jobs, args.verbose, args.check)
+
+    try:
+        run_project_tasks(
+            project_root, args.ignore, args.jobs, args.verbose, args.check
+        )
+    except KeyboardInterrupt:
+        print("\n🛑 Operation cancelled by user.")
+        sys.exit(130)
