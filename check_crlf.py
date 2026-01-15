@@ -78,7 +78,7 @@ def check_crlf_in_root(
     if verbose and ignored_dirs:
         print(" Ignored Directories ".center(MAX_WIDTH, "-"))
         for d in sorted(ignored_dirs):
-            print(f"\t🚫 {d}")
+            print(f"   🚫 {d}")
 
     crlf_files_found = []
 
@@ -109,14 +109,15 @@ if __name__ == "__main__":
     parser.add_argument("--ignore", "-i", nargs="+", metavar="DIR", default=[],
         help="One or more directories to ignore (accepts globs).\n(e.g., --ignore build dist '**/__pycache__')")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
-    # fmt: on
     args = parser.parse_args()
-
-    # Convert string argument to a resolved Path object immediately
-    root_path = Path(args.root_dir).resolve()
+    # fmt: on
 
     try:
-        check_crlf_in_root(root_path, args.ignore, args.verbose)
+        check_crlf_in_root(
+            repo_path=Path(args.root_dir).resolve(),
+            ignore_patterns=args.ignore,
+            verbose=args.verbose,
+        )
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
+        print("Operation cancelled by user.")
         sys.exit(130)

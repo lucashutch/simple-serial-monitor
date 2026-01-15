@@ -229,8 +229,8 @@ def run_project_tasks(
     root_dir: Path,
     ignore_patterns: list = [],
     jobs: Optional[int] = None,
-    verbose: bool = False,
     check: bool = False,
+    verbose: bool = False,
 ):
     print(f"🚀 Scanning for all source files in: {root_dir}")
     files_to_process = find_all_files(root_dir, ignore_patterns, verbose)
@@ -269,19 +269,18 @@ if __name__ == "__main__":
 
     parser.add_argument("--check", "-c", action="store_true",
         help="Run in 'check only' mode. Outputs files requiring changes and the associated required changes")
+    args = parser.parse_args()
     # fmt: on
 
-    args = parser.parse_args()
-
-    # Resolve root path immediately
-    project_root = Path(args.root_dir).resolve()
-
     check_for_tools()
-
     try:
         run_project_tasks(
-            project_root, args.ignore, args.jobs, args.verbose, args.check
+            root_dir=Path(args.root_dir).resolve(),
+            ignore_patterns=args.ignore,
+            jobs=args.jobs,
+            check=args.check,
+            verbose=args.verbose,
         )
     except KeyboardInterrupt:
-        print("\n🛑 Operation cancelled by user.")
+        print("Operation cancelled by user.")
         sys.exit(130)
