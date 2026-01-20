@@ -1,3 +1,39 @@
+Metadata-Version: 2.4
+Name: embedded-cereal-bowl
+Version: 0.1.0
+Summary: A collection of lightweight Python utilities for embedded development
+Author-email: Lucas Hutch <lucas@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/lucashutch/simple-serial-monitor
+Project-URL: Repository, https://github.com/lucashutch/simple-serial-monitor
+Project-URL: Issues, https://github.com/lucashutch/simple-serial-monitor/issues
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Embedded Systems
+Classifier: Topic :: System :: Hardware
+Classifier: Topic :: Terminals :: Serial
+Classifier: Topic :: Software Development :: Code Generators
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pyserial>=3.5
+Requires-Dist: regex>=2022.0.0
+Requires-Dist: colorama>=0.4.4
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: black>=22.0; extra == "dev"
+Requires-Dist: flake8>=5.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Dynamic: license-file
+
 # **🔧 Embedded Cereal Bowl**
 
 A collection of lightweight Python utilities designed to simplify common embedded development and maintenance tasks, including **serial monitoring**, **code formatting**, **line ending checks**, and **timestamp conversion**.
@@ -23,78 +59,40 @@ This project is licensed under the **MIT License**.
 git clone https://github.com/lucashutch/simple-serial-monitor.git
 cd simple-serial-monitor
 
-# Install as a package (recommended)
-pip install .
+# Install dependencies
+pip install pyserial regex colorama
 
-# Or install in development mode
-pip install -e .
+# Make the scripts executable
+chmod +x monitor timestamp
 
-# Start monitoring with console scripts (now available globally)
-monitor --send
+# Start monitoring (default port: ACM0/COM3 @ 115200)
+./monitor
 
-# Traditional execution still works
+# Start with interactive sending
 ./monitor --send
 ```
 
-## **📦 Installation**
+## **📦 Dependencies**
 
-### **Option 1: Package Installation (Recommended)**
-
-```bash
-# Install from local directory
-git clone https://github.com/lucashutch/simple-serial-monitor.git
-cd simple-serial-monitor
-pip install .
-
-# Install in development mode (for contributors)
-pip install -e .
-
-# Install from remote repository
-pip install git+https://github.com/lucashutch/simple-serial-monitor.git
-
-# Install from requirements.txt (traditional)
-pip install -r requirements.txt
-```
-
-### **Option 2: Manual Dependencies**
+The serial monitor requires the following Python packages:
 
 ```bash
 pip install pyserial regex colorama
 ```
 
-### **🛠️ Development Setup**
+- **pyserial**: Serial communication library
+- **regex**: Advanced regex for keyword highlighting
+- **colorama**: Cross-platform colored terminal output
+
+### **🔧 Installation**
 
 ```bash
-# Clone and set up development environment
-git clone https://github.com/lucashutch/simple-serial-monitor.git
-cd simple-serial-monitor
+# Install all dependencies at once
+pip install pyserial regex colorama
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install in development mode with dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Run linting
-flake8 src/
-black src/
+# Or install from requirements.txt (if available)
+pip install -r requirements.txt
 ```
-
-### **📋 Dependencies**
-
-- **pyserial>=3.5**: Serial communication library
-- **regex>=2022.0.0**: Advanced regex for keyword highlighting
-- **colorama>=0.4.4**: Cross-platform colored terminal output
-
-**Development Dependencies** (optional):
-- **pytest>=7.0**: Testing framework
-- **black>=22.0**: Code formatting
-- **flake8>=5.0**: Linting
-- **mypy>=1.0**: Type checking
 
 ## **💻 1. Simple Serial Monitor (monitor)**
 
@@ -109,24 +107,6 @@ A versatile serial monitor for **reading and writing** to serial ports, with fea
 - **🖥️ Cross-Platform**: Works on Windows, Linux, and macOS
 
 ### **📖 Usage**
-
-The package supports both **console scripts** and **traditional script execution**:
-
-#### **Console Scripts (After Package Installation)**
-```bash
-monitor --send                    # Serial monitor with interactive sending
-timestamp "2025-10-26T14:10:34Z"  # Time conversion
-check-crlf                      # Check line endings
-format-code                      # Format source files
-```
-
-#### **Traditional Script Execution**
-```bash
-./monitor --send                 # Original execution style
-python timestamp "2025-10-26T14:10:34Z"  # Python script execution
-```
-
-#### **Full Command Reference**
 ```
 usage: monitor [-h] [-p PORT] [-b BAUD] [-l] [-lf LOG_FILE] [-ld LOG_DIRECTORY] [-c] [-t {off,epoch,ms,dt}] [--highlight HIGHLIGHT] [--send]
 

@@ -1,0 +1,51 @@
+"""Console script entry points for embedded-cereal-bowl package."""
+
+import sys
+from .monitor import main as monitor_main
+from .formatter import main as formatter_main
+from .timestamp import main as timestamp_main
+from . import check_crlf
+
+
+def main_monitor():
+    """Entry point for the monitor console script."""
+    return monitor_main()
+
+
+def main_timestamp():
+    """Entry point for the timestamp console script."""
+    return timestamp_main()
+
+
+def main_check_crlf():
+    """Entry point for the check-crlf console script."""
+    return check_crlf.main()
+
+
+def main_formatter():
+    """Entry point for the format-code console script."""
+    return formatter_main()
+
+
+if __name__ == "__main__":
+    # Allow running this module directly for testing
+    if len(sys.argv) > 1:
+        tool = sys.argv[1]
+        if tool == "monitor":
+            sys.argv.pop(1)
+            main_monitor()
+        elif tool == "timestamp":
+            sys.argv.pop(1)
+            main_timestamp()
+        elif tool == "check-crlf":
+            sys.argv.pop(1)
+            main_check_crlf()
+        elif tool == "format-code":
+            sys.argv.pop(1)
+            main_formatter()
+        else:
+            print("Usage: python -m embedded_cereal_bowl.cli [monitor|timestamp|check-crlf|format-code] [args]")
+            sys.exit(1)
+    else:
+        print("Usage: python -m embedded_cereal_bowl.cli [monitor|timestamp|check-crlf|format-code] [args]")
+        sys.exit(1)
