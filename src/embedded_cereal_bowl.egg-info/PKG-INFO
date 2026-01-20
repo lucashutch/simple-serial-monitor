@@ -59,40 +59,78 @@ This project is licensed under the **MIT License**.
 git clone https://github.com/lucashutch/simple-serial-monitor.git
 cd simple-serial-monitor
 
-# Install dependencies
-pip install pyserial regex colorama
+# Install as a package (recommended)
+pip install .
 
-# Make the scripts executable
-chmod +x monitor timestamp
+# Or install in development mode
+pip install -e .
 
-# Start monitoring (default port: ACM0/COM3 @ 115200)
-./monitor
+# Start monitoring with console scripts (now available globally)
+monitor --send
 
-# Start with interactive sending
+# Traditional execution still works
 ./monitor --send
 ```
 
-## **📦 Dependencies**
+## **📦 Installation**
 
-The serial monitor requires the following Python packages:
-
-```bash
-pip install pyserial regex colorama
-```
-
-- **pyserial**: Serial communication library
-- **regex**: Advanced regex for keyword highlighting
-- **colorama**: Cross-platform colored terminal output
-
-### **🔧 Installation**
+### **Option 1: Package Installation (Recommended)**
 
 ```bash
-# Install all dependencies at once
-pip install pyserial regex colorama
+# Install from local directory
+git clone https://github.com/lucashutch/simple-serial-monitor.git
+cd simple-serial-monitor
+pip install .
 
-# Or install from requirements.txt (if available)
+# Install in development mode (for contributors)
+pip install -e .
+
+# Install from remote repository
+pip install git+https://github.com/lucashutch/simple-serial-monitor.git
+
+# Install from requirements.txt (traditional)
 pip install -r requirements.txt
 ```
+
+### **Option 2: Manual Dependencies**
+
+```bash
+pip install pyserial regex colorama
+```
+
+### **🛠️ Development Setup**
+
+```bash
+# Clone and set up development environment
+git clone https://github.com/lucashutch/simple-serial-monitor.git
+cd simple-serial-monitor
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install in development mode with dev dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run linting
+flake8 src/
+black src/
+```
+
+### **📋 Dependencies**
+
+- **pyserial>=3.5**: Serial communication library
+- **regex>=2022.0.0**: Advanced regex for keyword highlighting
+- **colorama>=0.4.4**: Cross-platform colored terminal output
+
+**Development Dependencies** (optional):
+- **pytest>=7.0**: Testing framework
+- **black>=22.0**: Code formatting
+- **flake8>=5.0**: Linting
+- **mypy>=1.0**: Type checking
 
 ## **💻 1. Simple Serial Monitor (monitor)**
 
@@ -107,6 +145,24 @@ A versatile serial monitor for **reading and writing** to serial ports, with fea
 - **🖥️ Cross-Platform**: Works on Windows, Linux, and macOS
 
 ### **📖 Usage**
+
+The package supports both **console scripts** and **traditional script execution**:
+
+#### **Console Scripts (After Package Installation)**
+```bash
+monitor --send                    # Serial monitor with interactive sending
+timestamp "2025-10-26T14:10:34Z"  # Time conversion
+check-crlf                      # Check line endings
+format-code                      # Format source files
+```
+
+#### **Traditional Script Execution**
+```bash
+./monitor --send                 # Original execution style
+python timestamp "2025-10-26T14:10:34Z"  # Python script execution
+```
+
+#### **Full Command Reference**
 ```
 usage: monitor [-h] [-p PORT] [-b BAUD] [-l] [-lf LOG_FILE] [-ld LOG_DIRECTORY] [-c] [-t {off,epoch,ms,dt}] [--highlight HIGHLIGHT] [--send]
 

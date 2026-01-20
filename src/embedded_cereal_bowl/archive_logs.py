@@ -48,7 +48,8 @@ def cleanup_logs(log_path: Path):
 
 
 # --- Argument Parsing and Execution ---
-if __name__ == "__main__":
+def main():
+    """Main entry point for archive logs utility."""
     parser = argparse.ArgumentParser(
         description="Archive a specified log directory with a timestamp and then delete it."
     )
@@ -66,3 +67,7 @@ if __name__ == "__main__":
     # If the user provided a relative path/name, we resolve it relative to the CWD
     log_path_to_archive = Path.cwd() / args.directory
     cleanup_logs(log_path_to_archive)
+
+
+if __name__ == "__main__":
+    main()
