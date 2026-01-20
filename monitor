@@ -6,6 +6,8 @@ import os
 import argparse
 import regex as re
 import time
+import threading
+import select
 from datetime import datetime, timezone
 from simple_utils import colour_str
 
@@ -70,6 +72,11 @@ def parse_arguments():
         help="Comma-separated list of words to highlight (case-insensitive).\n"
         "Example: --highlight=error,warning,fail",
     )
+    parser.add_argument(
+        "--send",
+        action="store_true",
+        help="Enable interactive sending mode - type commands to send to serial device",
+    )
     return parser.parse_args()
 
 
@@ -94,6 +101,7 @@ def run_serial_printing_with_logs(
     log_directory,
     print_time,
     highlight_words=None,
+    enable_send=False,
 ):
     filename = f"{datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}_{log_file}.txt"
     if not os.path.isdir(log_directory):
@@ -103,7 +111,7 @@ def run_serial_printing_with_logs(
     print(f"Logging to: {logging_file}")
 
     with open(logging_file, "a+", buffering=1) as file:
-        run_serial_printing(serial_port_name, baud, print_time, file, highlight_words)
+        run_serial_printing(serial_port_name, baud, print_time, file, highlight_words, enable_send)
 
 
 def add_time_to_line(print_time):
@@ -147,25 +155,88 @@ def create_replacement_lambda(current_line_state):
     return find_and_replace
 
 
-def serial_loop(ser, print_time, file, highlight_words=None):
-    while True:
-        if not (line := ser.readline().decode("utf-8", errors="ignore")):
-            continue
-        line = f"{add_time_to_line(print_time)}{line}"
-        if highlight_words:
-            for word in highlight_words:
-                if not word:  # Skip empty strings from splitting
-                    continue
-                line = re.sub(
-                    re.escape(word),
-                    create_replacement_lambda(line),
-                    line,
-                    flags=re.IGNORECASE,
-                )
-
-        print(line, end="")
+def send_serial_data(ser, data, print_time, file):
+    """Send data to serial port and log it if logging is enabled."""
+    try:
+        # Add newline if not present (mimic readline behavior)
+        if not data.endswith('\n'):
+            data += '\n'
+        
+        # Send to serial port
+        ser.write(data.encode('utf-8'))
+        
+        # Add timestamp and display/log sent data
+        timestamped_line = f"{add_time_to_line(print_time)}{data}"
+        print(timestamped_line, end="")
+        
         if file:
-            file.write(ASNI_ESCAPE_PATTERN.sub("", line))  # strip colours for log file
+            file.write(ASNI_ESCAPE_PATTERN.sub("", timestamped_line))
+        
+        return True
+    except serial.SerialException as e:
+        print(f"\n{colour_str('Send error:').red()} {e}")
+        return False
+
+
+def handle_user_input(ser, print_time, file, stop_event):
+    """Handle user keyboard input for sending serial data."""
+    while not stop_event.is_set():
+        try:
+            # Use select for non-blocking input detection (cross-platform)
+            if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                line = sys.stdin.readline()
+                if line:
+                    # Remove trailing newline for processing
+                    user_input = line.rstrip('\n')
+                    if user_input:  # Don't send empty lines
+                        send_serial_data(ser, user_input, print_time, file)
+        except (IOError, OSError):
+            # Handle cases where stdin might not be available
+            break
+        except Exception as e:
+            print(f"\n{colour_str('Input error:').red()} {e}")
+            break
+
+
+def serial_loop(ser, print_time, file, highlight_words=None, enable_send=False):
+    # Create stop event for thread management
+    stop_event = threading.Event()
+    input_thread = None
+    
+    # Start input thread if sending is enabled
+    if enable_send:
+        input_thread = threading.Thread(
+            target=handle_user_input,
+            args=(ser, print_time, file, stop_event),
+            daemon=True
+        )
+        input_thread.start()
+        print(f"{colour_str('Interactive sending enabled - type commands and press Enter:').green()}")
+    
+    try:
+        while True:
+            if not (line := ser.readline().decode("utf-8", errors="ignore")):
+                continue
+            line = f"{add_time_to_line(print_time)}{line}"
+            if highlight_words:
+                for word in highlight_words:
+                    if not word:  # Skip empty strings from splitting
+                        continue
+                    line = re.sub(
+                        re.escape(word),
+                        create_replacement_lambda(line),
+                        line,
+                        flags=re.IGNORECASE,
+                    )
+
+            print(line, end="")
+            if file:
+                file.write(ASNI_ESCAPE_PATTERN.sub("", line))  # strip colours for log file
+    finally:
+        # Clean up input thread when exiting
+        if input_thread and input_thread.is_alive():
+            stop_event.set()
+            input_thread.join(timeout=0.5)
 
 
 def wait_with_spinner(serial_port_name, count):
@@ -186,7 +257,7 @@ def wait_with_spinner(serial_port_name, count):
 
 
 def run_serial_printing(
-    serial_port_name, baud, print_time=None, file=None, highlight_words=None
+    serial_port_name, baud, print_time=None, file=None, highlight_words=None, enable_send=False
 ):
     count = 0
     while True:
@@ -195,7 +266,7 @@ def run_serial_printing(
             with serial.Serial(serial_port_name, baud, timeout=0.05) as ser:
                 count = 0
                 print("\n" + f" ✅ Connected to {serial_port_name} ".center(50, "-"))
-                serial_loop(ser, print_time, file, highlight_words)
+                serial_loop(ser, print_time, file, highlight_words, enable_send)
         except serial.SerialException:
             count = wait_with_spinner(serial_port_name, count)
         except KeyboardInterrupt:
@@ -225,10 +296,11 @@ def main():
             args.log_directory,
             args.print_time,
             highlight_words,
+            args.send,
         )
     else:
         run_serial_printing(
-            serial_port_name, args.baud, args.print_time, None, highlight_words
+            serial_port_name, args.baud, args.print_time, None, highlight_words, args.send
         )
 
 
