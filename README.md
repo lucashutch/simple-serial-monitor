@@ -69,20 +69,85 @@ pip install pyserial regex colorama
 git clone https://github.com/lucashutch/simple-serial-monitor.git
 cd simple-serial-monitor
 
-# Create virtual environment
+# Create virtual environment (Python 3.12+ required)
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install in development mode with dev dependencies
 pip install -e ".[dev]"
 
-# Run tests
+# Run tests with coverage
 pytest
 
-# Run linting
+# Run linting and formatting checks
 flake8 src/
+black --check src/
+mypy src/
+bandit -r src/
+
+# Format code automatically
 black src/
 ```
+
+### **🧪 Testing and CI/CD**
+
+This project includes comprehensive **unit and integration tests** with **automated CI/CD** via GitHub Actions:
+
+#### **Testing Coverage**
+- **Unit Tests**: All core functionality tested (timestamp conversion, color utilities, code formatting, serial monitoring)
+- **Integration Tests**: Mocked serial port operations and CLI workflows
+- **Coverage Target**: 80-90% line coverage across all modules
+- **Test Framework**: pytest with mocking support
+
+#### **CI/CD Pipeline**
+- **Python Versions**: Tests run on Python 3.12, 3.14, and latest
+- **Quality Checks**: 
+  - Linting with flake8
+  - Code formatting with black
+  - Type checking with mypy
+  - Security scanning with bandit
+  - Package building validation
+- **Coverage Reporting**: Automated coverage upload to Codecov
+- **CLI Testing**: All command-line entry points are validated
+
+#### **Running Tests Locally**
+
+```bash
+# Run all tests with coverage
+pytest --cov=src --cov-report=term-missing
+
+# Run specific test files
+pytest tests/test_timestamp.py
+pytest tests/integration/test_serial_integration.py
+
+# Run with verbose output
+pytest -v
+
+# Run tests for specific module
+pytest tests/test_monitor.py -v
+
+# Run coverage with HTML report
+pytest --cov=src --cov-report=html
+# Open htmlcov/index.html to view detailed coverage
+```
+
+#### **CI/CD Workflow**
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) automatically:
+
+1. **Triggers** on pushes and PRs to main/develop branches
+2. **Tests** across Python 3.12, 3.14, and latest versions
+3. **Validates** code quality (linting, formatting, type checking)
+4. **Runs** full test suite with coverage reporting
+5. **Builds** package to ensure distributability
+6. **Uploads** coverage reports and test artifacts
+
+#### **Quality Gates**
+
+- **Tests must pass** across all Python versions
+- **Coverage must meet 80% minimum**
+- **Code must pass linting and type checking**
+- **No high-severity security vulnerabilities**
 
 ### **📋 Dependencies**
 
@@ -91,10 +156,18 @@ black src/
 - **colorama>=0.4.4**: Cross-platform colored terminal output
 
 **Development Dependencies** (optional):
-- **pytest>=7.0**: Testing framework
+- **pytest>=7.0**: Testing framework with coverage reporting
+- **pytest-mock>=3.10**: Test mocking utilities
 - **black>=22.0**: Code formatting
 - **flake8>=5.0**: Linting
-- **mypy>=1.0**: Type checking
+- **mypy>=1.0**: Static type checking
+- **bandit>=1.7**: Security vulnerability scanning
+- **build>=0.8.0**: Package building utilities
+
+#### **Python Version Requirements**
+- **Minimum**: Python 3.12+ (matches Ubuntu 24.04)
+- **Tested**: Python 3.12, 3.14, and latest
+- **Recommended**: Use the latest Python 3.12+ release for best compatibility
 
 ## **💻 1. Simple Serial Monitor (monitor)**
 
