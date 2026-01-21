@@ -2,10 +2,10 @@ name: CI
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ master, develop ]
   pull_request:
-    branches: [ master, develop ]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   test:
