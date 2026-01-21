@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import sys
 from datetime import datetime, timezone
 from typing import Tuple
+
 
 def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
     """
@@ -37,7 +39,8 @@ def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
         except ValueError as e:
             # Re-raise the error with a helpful message
             raise ValueError(
-                f"Input '{time_input}' is neither a valid Unix timestamp nor a valid ISO 8601 string."
+                f"Input '{time_input}' is neither a valid Unix timestamp nor "
+                f"a valid ISO 8601 string."
             ) from e
 
     # Convert the aware datetime object to the target timezones
@@ -55,16 +58,16 @@ def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
     return utc_str, local_str, utc_ts
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Convert a Unix timestamp (seconds/milliseconds) or an ISO 8601 "
-                    "time string to UTC and local time in ISO 8601 format."
+        "time string to UTC and local time in ISO 8601 format."
     )
     # The argument type is str to handle both numeric and string date formats
     parser.add_argument(
         "time_input",
         type=str,
-        help="Time value (e.g., 1761660634.104 or 2025-10-26T14:10:34.104Z)"
+        help="Time value (e.g., 1761660634.104 or 2025-10-26T14:10:34.104Z)",
     )
 
     args = parser.parse_args()
@@ -81,6 +84,7 @@ def main():
     except ValueError as e:
         print(f"Error: {e}")
         parser.print_help()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

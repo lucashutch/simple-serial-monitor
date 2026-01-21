@@ -7,7 +7,7 @@ import shutil
 import argparse
 
 
-def cleanup_logs(log_path: Path):
+def cleanup_logs(log_path: Path) -> None:
     """
     Zips the specified log directory with a timestamp and then deletes the
     original directory.
@@ -48,10 +48,12 @@ def cleanup_logs(log_path: Path):
 
 
 # --- Argument Parsing and Execution ---
-def main():
+def main() -> None:
     """Main entry point for archive logs utility."""
     parser = argparse.ArgumentParser(
-        description="Archive a specified log directory with a timestamp and then delete it."
+        description=(
+            "Archive a specified log directory with a timestamp and " "then delete it."
+        )
     )
 
     parser.add_argument(

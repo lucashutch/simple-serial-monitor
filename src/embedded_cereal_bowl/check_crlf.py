@@ -3,6 +3,7 @@ import sys
 import shutil
 import argparse
 from pathlib import Path
+from typing import Iterator
 
 try:
     MAX_WIDTH = min(shutil.get_terminal_size()[0], 80)
@@ -27,7 +28,7 @@ def has_crlf_endings(file_path: Path) -> bool:
     return False
 
 
-def scan_directory(root_path: Path, excluded_paths: set[Path]):
+def scan_directory(root_path: Path, excluded_paths: set[Path]) -> Iterator[Path]:
     """
     Recursively yields files, skipping excluded directories.
     """
@@ -65,7 +66,7 @@ def resolve_ignore_dirs(root: Path, ignore_patterns: list[str]) -> set[Path]:
 
 def check_crlf_in_root(
     repo_path: Path, ignore_patterns: list[str], verbose: bool = False
-):
+) -> None:
     if not repo_path.is_dir():
         print(f"Error: Directory not found at '{repo_path}'")
         sys.exit(1)
@@ -98,18 +99,31 @@ def check_crlf_in_root(
         sys.exit(0)
 
 
-def main():
+def main() -> None:
     """Main entry point for CRLF checker."""
     parser = argparse.ArgumentParser(
         description="Checks for CRLF line endings in files within a repository.",
     )
 
     # fmt: off
-    parser.add_argument("root_dir", nargs="?", default=".",
-        help="The root directory to scan (default: current directory)")
-    parser.add_argument("--ignore", "-i", nargs="+", metavar="DIR", default=[],
-        help="One or more directories to ignore (accepts globs).\n(e.g., --ignore build dist '**/__pycache__')")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
+    parser.add_argument(
+        "root_dir", nargs="?", default=".",
+        help="The root directory to scan (default: current directory)"
+    )
+    parser.add_argument(
+        "--ignore",
+        "-i",
+        nargs="+",
+        metavar="DIR",
+        default=[],
+        help=(
+            "One or more directories to ignore (accepts globs).\n"
+            "(e.g., --ignore build dist '**/__pycache__')"
+        ),
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output."
+    )
     args = parser.parse_args()
     # fmt: on
 

@@ -19,4 +19,9 @@ src/embedded_cereal_bowl/timestamp/__init__.py
 src/embedded_cereal_bowl/timestamp/timestamp.py
 src/embedded_cereal_bowl/utils/__init__.py
 src/embedded_cereal_bowl/utils/color_utils.py
+tests/test_cli.py
+tests/test_color_utils.py
+tests/test_formatter.py
 tests/test_monitor.py
+tests/test_timestamp.py
+tests/test_utilities.py
