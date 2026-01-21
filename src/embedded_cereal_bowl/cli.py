@@ -7,22 +7,22 @@ from .timestamp import main as timestamp_main
 from . import check_crlf
 
 
-def main_monitor():
+def main_monitor() -> None:
     """Entry point for the monitor console script."""
     return monitor_main()
 
 
-def main_timestamp():
+def main_timestamp() -> None:
     """Entry point for the timestamp console script."""
     return timestamp_main()
 
 
-def main_check_crlf():
+def main_check_crlf() -> None:
     """Entry point for the check-crlf console script."""
     return check_crlf.main()
 
 
-def main_formatter():
+def main_formatter() -> None:
     """Entry point for the format-code console script."""
     return formatter_main()
 
@@ -44,8 +44,14 @@ if __name__ == "__main__":
             sys.argv.pop(1)
             main_formatter()
         else:
-            print("Usage: python -m embedded_cereal_bowl.cli [monitor|timestamp|check-crlf|format-code] [args]")
+            print(
+                "Usage: python -m embedded_cereal_bowl.cli "
+                "[monitor|timestamp|check-crlf|format-code] [args]"
+            )
             sys.exit(1)
     else:
-        print("Usage: python -m embedded_cereal_bowl.cli [monitor|timestamp|check-crlf|format-code] [args]")
+        print(
+            "Usage: python -m embedded_cereal_bowl.cli "
+            "[monitor|timestamp|check-crlf|format-code] [args]"
+        )
         sys.exit(1)

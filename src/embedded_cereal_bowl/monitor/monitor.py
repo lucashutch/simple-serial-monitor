@@ -9,14 +9,18 @@ import time
 import threading
 import select
 from datetime import datetime, timezone
+from typing import Callable, Optional, List, Any
 from ..utils.color_utils import colour_str
 
 ASNI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="A versatile serial monitor with read/write capabilities, logging, and auto-reconnect.",
+        description=(
+            "A versatile serial monitor with read/write capabilities, "
+            "logging, and auto-reconnect."
+        ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -80,29 +84,29 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_serial_prefix():
+def get_serial_prefix() -> str:
     if os.name == "nt":
         return ""
     return "/dev/tty"
 
 
-def clear_terminal():
+def clear_terminal() -> None:
     # clear screen
     if os.name == "nt":
-        os.system("cls")
+        os.system("cls")  # nosec B605 B607
     else:
-        os.system("clear")
+        os.system("clear")  # nosec B605 B607
 
 
 def run_serial_printing_with_logs(
-    serial_port_name,
-    baud,
-    log_file,
-    log_directory,
-    print_time,
-    highlight_words=None,
-    enable_send=False,
-):
+    serial_port_name: str,
+    baud: int,
+    log_file: str,
+    log_directory: str,
+    print_time: str,
+    highlight_words: Optional[List[str]] = None,
+    enable_send: bool = False,
+) -> None:
     filename = f"{datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}_{log_file}.txt"
     if not os.path.isdir(log_directory):
         os.mkdir(log_directory)
@@ -111,22 +115,29 @@ def run_serial_printing_with_logs(
     print(f"Logging to: {logging_file}")
 
     with open(logging_file, "a+", buffering=1) as file:
-        run_serial_printing(serial_port_name, baud, print_time, file, highlight_words, enable_send)
+        run_serial_printing(
+            serial_port_name, baud, print_time, file, highlight_words, enable_send
+        )
 
 
-def add_time_to_line(print_time):
+def add_time_to_line(print_time: str) -> str:
     now_utc = datetime.now(timezone.utc)
     if "epoch" in print_time:
         return f"{now_utc.timestamp():.3f} "
     elif "ms" in print_time:
         return f"{now_utc.timestamp() * 1000:.0f} "
     elif "dt" in print_time:
-        return f"{now_utc.replace(tzinfo=None).isoformat(sep=' ', timespec='milliseconds')} "
+        formatted_dt = now_utc.replace(tzinfo=None).isoformat(
+            sep=" ", timespec="milliseconds"
+        )
+        return f"{formatted_dt} "
     return ""
 
 
-def create_replacement_lambda(current_line_state):
-    def find_and_replace(match):
+def create_replacement_lambda(
+    current_line_state: str,
+) -> Callable[[re.Match[str]], str]:
+    def find_and_replace(match: re.Match[str]) -> str:
         # Part of the line before the current match
         pre_match_str = current_line_state[: match.start()]
         # Find all ANSI codes before the match
@@ -155,30 +166,37 @@ def create_replacement_lambda(current_line_state):
     return find_and_replace
 
 
-def send_serial_data(ser, data, print_time, file):
+def send_serial_data(
+    ser: serial.Serial, data: str, print_time: str, file: Optional[Any]
+) -> bool:
     """Send data to serial port and log it if logging is enabled."""
     try:
         # Add newline if not present (mimic readline behavior)
-        if not data.endswith('\n'):
-            data += '\n'
-        
+        if not data.endswith("\n"):
+            data += "\n"
+
         # Send to serial port
-        ser.write(data.encode('utf-8'))
-        
+        ser.write(data.encode("utf-8"))
+
         # Add timestamp and display/log sent data
         timestamped_line = f"{add_time_to_line(print_time)}{data}"
         print(timestamped_line, end="")
-        
+
         if file:
             file.write(ASNI_ESCAPE_PATTERN.sub("", timestamped_line))
-        
+
         return True
     except serial.SerialException as e:
         print(f"\n{colour_str('Send error:').red()} {e}")
         return False
 
 
-def handle_user_input(ser, print_time, file, stop_event):
+def handle_user_input(
+    ser: serial.Serial,
+    print_time: str,
+    file: Optional[Any],
+    stop_event: threading.Event,
+) -> None:
     """Handle user keyboard input for sending serial data."""
     while not stop_event.is_set():
         try:
@@ -187,7 +205,7 @@ def handle_user_input(ser, print_time, file, stop_event):
                 line = sys.stdin.readline()
                 if line:
                     # Remove trailing newline for processing
-                    user_input = line.rstrip('\n')
+                    user_input = line.rstrip("\n")
                     if user_input:  # Don't send empty lines
                         send_serial_data(ser, user_input, print_time, file)
         except (IOError, OSError):
@@ -198,21 +216,29 @@ def handle_user_input(ser, print_time, file, stop_event):
             break
 
 
-def serial_loop(ser, print_time, file, highlight_words=None, enable_send=False):
+def serial_loop(
+    ser: serial.Serial,
+    print_time: Optional[str],
+    file: Optional[Any],
+    highlight_words: Optional[List[str]] = None,
+    enable_send: bool = False,
+) -> None:
     # Create stop event for thread management
     stop_event = threading.Event()
+    print_time = print_time or "none"
     input_thread = None
-    
+
     # Start input thread if sending is enabled
     if enable_send:
         input_thread = threading.Thread(
             target=handle_user_input,
             args=(ser, print_time, file, stop_event),
-            daemon=True
+            daemon=True,
         )
         input_thread.start()
-        print(f"{colour_str('Interactive sending enabled - type commands and press Enter:').green()}")
-    
+        message = "Interactive sending enabled - type commands and press Enter:"
+        print(f"{colour_str(message).green()}")
+
     try:
         while True:
             if not (line := ser.readline().decode("utf-8", errors="ignore")):
@@ -231,7 +257,9 @@ def serial_loop(ser, print_time, file, highlight_words=None, enable_send=False):
 
             print(line, end="")
             if file:
-                file.write(ASNI_ESCAPE_PATTERN.sub("", line))  # strip colours for log file
+                file.write(
+                    ASNI_ESCAPE_PATTERN.sub("", line)
+                )  # strip colours for log file
     finally:
         # Clean up input thread when exiting
         if input_thread and input_thread.is_alive():
@@ -239,9 +267,9 @@ def serial_loop(ser, print_time, file, highlight_words=None, enable_send=False):
             input_thread.join(timeout=0.5)
 
 
-def wait_with_spinner(serial_port_name, count):
-    loading_bars = ["[==    ]", "[  ==  ]", "[    ==]", "[  ==  ]"]
+def wait_with_spinner(serial_port_name: str, count: int) -> int:
     """Prints a spinning icon to show that the script is waiting."""
+    loading_bars = ["[==    ]", "[  ==  ]", "[    ==]", "[  ==  ]"]
     loading_char = loading_bars[count % len(loading_bars)]
 
     # Construct the status text using your colour_str class
@@ -257,8 +285,13 @@ def wait_with_spinner(serial_port_name, count):
 
 
 def run_serial_printing(
-    serial_port_name, baud, print_time=None, file=None, highlight_words=None, enable_send=False
-):
+    serial_port_name: str,
+    baud: int,
+    print_time: Optional[str] = None,
+    file: Optional[Any] = None,
+    highlight_words: Optional[List[str]] = None,
+    enable_send: bool = False,
+) -> None:
     count = 0
     while True:
         try:
@@ -274,7 +307,7 @@ def run_serial_printing(
             sys.exit(0)
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
 
     if args.clear:
@@ -300,7 +333,12 @@ def main():
         )
     else:
         run_serial_printing(
-            serial_port_name, args.baud, args.print_time, None, highlight_words, args.send
+            serial_port_name,
+            args.baud,
+            args.print_time,
+            None,
+            highlight_words,
+            args.send,
         )
 
 

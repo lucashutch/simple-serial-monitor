@@ -2,14 +2,13 @@
 
 import argparse
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 import concurrent.futures
 import difflib
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any, Set, Generator
 from ..utils.color_utils import colour_str
-
 
 try:
     MAX_WIDTH = min(shutil.get_terminal_size()[0], 80)
@@ -73,6 +72,12 @@ def find_all_files(
     """Finds all files for all configured formatters, respecting ignore globs."""
 
     files_with_config: Dict[Path, Dict[str, Any]] = {}
+
+    if not root_dir.is_dir():
+        msg = f"Error: Root directory '{root_dir}' not found."
+        print(colour_str(msg).red(), file=sys.stderr)
+        sys.exit(1)
+
     absolute_ignore_dirs = resolve_ignore_dirs(root_dir, ignore_patterns)
 
     if verbose and ignore_patterns:
@@ -81,11 +86,6 @@ def find_all_files(
             print("  (No directories matched the ignore patterns)")
         for d in sorted(absolute_ignore_dirs):
             print(f"  🚫 {d}")
-
-    if not root_dir.is_dir():
-        msg = f"Error: Root directory '{root_dir}' not found."
-        print(colour_str(msg).red(), file=sys.stderr)
-        sys.exit(1)
 
     name_lookup = {
         name: config
@@ -121,7 +121,7 @@ def process_one_file(
         if not check:
             cmd_args.append("-i")  # In-place flag
 
-        result = subprocess.run(cmd_args, check=True, capture_output=True)
+        result = subprocess.run(cmd_args, check=True, capture_output=True)  # nosec B603
 
         if check:
             # In check mode, stdout usually contains the formatted file content
@@ -163,7 +163,7 @@ def process_files_parallel(
     jobs: Optional[int],
     verbose: bool,
     check: bool,
-):
+) -> None:
     """Runs the correct formatter or checker in parallel for all found files."""
     if not files_with_config:
         print("No files found to process.")
@@ -227,17 +227,17 @@ def process_files_parallel(
 
 def run_project_tasks(
     root_dir: Path,
-    ignore_patterns: list = [],
+    ignore_patterns: list[str] = [],
     jobs: Optional[int] = None,
     check: bool = False,
     verbose: bool = False,
-):
+) -> None:
     print(f"🚀 Scanning for all source files in: {root_dir}")
     files_to_process = find_all_files(root_dir, ignore_patterns, verbose)
     process_files_parallel(files_to_process, root_dir, jobs, verbose, check)
 
 
-def check_for_tools():
+def check_for_tools() -> bool:
     all_tools_found = True
     # Check if tools exist using shutil.which (cleaner than subprocess)
     for config in FORMATTER_CONFIG.values():
@@ -246,34 +246,64 @@ def check_for_tools():
             print(colour_str(f"❌ Error: '{command}' not found in PATH.").red())
             all_tools_found = False
 
-    if not all_tools_found:
-        sys.exit(1)
+    return all_tools_found
 
 
-def main():
+def main() -> None:
     """Main entry point for the formatter."""
     parser = argparse.ArgumentParser(
-        description="A universal script to format all source files (C++, CMake, etc.) in parallel.",
+        description=(
+            "A universal script to format all source files (C++, CMake, "
+            "etc.) in parallel."
+        )
     )
     # fmt: off
-    parser.add_argument("root_dir", nargs="?", default=".",
-        help="The root directory to scan (default: current directory)")
+    parser.add_argument(
+        "root_dir", nargs="?", default=".",
+        help="The root directory to scan (default: current directory)"
+    )
 
-    parser.add_argument("--ignore", "-i", nargs="+", metavar="PATTERN", default=[],
-        help="One or more directory patterns to ignore.\n(e.g., --ignore build '**/__pycache__' '*/temp')")
+    parser.add_argument(
+        "--ignore",
+        "-i",
+        nargs="+",
+        metavar="PATTERN",
+        default=[],
+        help=(
+            "One or more directory patterns to ignore.\n"
+            "(e.g., --ignore build '**/__pycache__' '*/temp')"
+        ),
+    )
 
-    parser.add_argument("-j","--jobs",type=int, default=None,
-        help="The number of concurrent jobs to run.\n(default: all available CPU cores)")
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=None,
+        help=(
+            "The number of concurrent jobs to run.\n"
+            "(default: all available CPU cores)"
+        ),
+    )
 
-    parser.add_argument("-v", "--verbose", action="store_true",
-        help="Enable verbose output.")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output."
+    )
 
-    parser.add_argument("--check", "-c", action="store_true",
-        help="Run in 'check only' mode. Outputs files requiring changes and the associated required changes")
+    parser.add_argument(
+        "--check",
+        "-c",
+        action="store_true",
+        help=(
+            "Run in 'check only' mode. Outputs files requiring "
+            "changes and the associated required changes"
+        ),
+    )
     args = parser.parse_args()
     # fmt: on
 
-    check_for_tools()
+    if not check_for_tools():
+        sys.exit(1)
     try:
         run_project_tasks(
             root_dir=Path(args.root_dir).resolve(),
@@ -287,9 +317,15 @@ def main():
         sys.exit(130)
 
 
-def format_files(root_dir=".", ignore_patterns=None, jobs=None, verbose=False):
+def format_files(
+    root_dir: str = ".",
+    ignore_patterns: Optional[List[str]] = None,
+    jobs: Optional[int] = None,
+    verbose: bool = False,
+) -> None:
     """Format files in a directory (for programmatic use)."""
-    check_for_tools()
+    if not check_for_tools():
+        return
     run_project_tasks(
         root_dir=Path(root_dir).resolve(),
         ignore_patterns=ignore_patterns or [],
@@ -299,9 +335,15 @@ def format_files(root_dir=".", ignore_patterns=None, jobs=None, verbose=False):
     )
 
 
-def check_format(root_dir=".", ignore_patterns=None, jobs=None, verbose=False):
+def check_format(
+    root_dir: str = ".",
+    ignore_patterns: Optional[List[str]] = None,
+    jobs: Optional[int] = None,
+    verbose: bool = False,
+) -> None:
     """Check file formatting in a directory (for programmatic use)."""
-    check_for_tools()
+    if not check_for_tools():
+        return
     run_project_tasks(
         root_dir=Path(root_dir).resolve(),
         ignore_patterns=ignore_patterns or [],

@@ -6,7 +6,7 @@ class colour_str:
 
     def __init__(self, s: str):
         self.s = s
-        self.codes = []
+        self.codes: list[str] = []
 
     def __str__(self) -> str:
         """Applies the stored codes when the object is converted to a string."""
