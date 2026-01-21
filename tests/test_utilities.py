@@ -1,22 +1,22 @@
 """Test utility functions and helper classes."""
 
-import pytest
 import sys
-import os
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add src directory to path for testing
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from src.embedded_cereal_bowl.monitor.monitor import (
-    serial_loop,
-    create_replacement_lambda,
     ASNI_ESCAPE_PATTERN,
-    get_serial_prefix,
     clear_terminal,
+    create_replacement_lambda,
+    get_serial_prefix,
     run_serial_printing_with_logs,
+    serial_loop,
 )
 
 
@@ -160,15 +160,17 @@ class TestSerialLoopEdgeCases:
         stop_event = Mock()
         stop_event.is_set.return_value = False
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", None, None, False)
-                except (KeyboardInterrupt, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", None, None, False)
+            except (KeyboardInterrupt, AttributeError):
+                pass
 
         # Should not start input thread when send is disabled
         mock_thread.assert_not_called()
@@ -178,15 +180,17 @@ class TestSerialLoopEdgeCases:
         mock_ser = Mock()
         mock_ser.readline.side_effect = [b"", b"data\n", b"", KeyboardInterrupt()]
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", None, None, False)
-                except (KeyboardInterrupt, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", None, None, False)
+            except (KeyboardInterrupt, AttributeError):
+                pass
 
         # Should continue on empty lines
         assert mock_ser.readline.call_count >= 2
@@ -200,20 +204,22 @@ class TestSerialLoopEdgeCases:
             KeyboardInterrupt(),
         ]
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                with patch(
-                    "src.embedded_cereal_bowl.monitor.monitor.create_replacement_lambda"
-                ) as mock_replacement:
-                    mock_replacement.return_value = lambda m: "highlighted_error"
+            ),
+            patch(
+                "src.embedded_cereal_bowl.monitor.monitor.create_replacement_lambda"
+            ) as mock_replacement,
+        ):
+            mock_replacement.return_value = lambda m: "highlighted_error"
 
-                    try:
-                        serial_loop(mock_ser, "epoch", None, ["error"], False)
-                    except (KeyboardInterrupt, AttributeError):
-                        pass
+            try:
+                serial_loop(mock_ser, "epoch", None, ["error"], False)
+            except (KeyboardInterrupt, AttributeError):
+                pass
 
         # Should create replacement lambda for highlight words
         mock_replacement.assert_called()
@@ -232,15 +238,17 @@ class TestErrorHandling:
             KeyboardInterrupt(),
         ]
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", None, None, False)
-                except (KeyboardInterrupt, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", None, None, False)
+            except (KeyboardInterrupt, AttributeError):
+                pass
 
         # Should handle both valid and invalid data gracefully
         assert mock_print.call_count >= 1
@@ -252,17 +260,19 @@ class TestErrorHandling:
         mock_ser.readline.side_effect = [b"data\n", KeyboardInterrupt()]
 
         mock_file = Mock()
-        mock_file.write.side_effect = IOError("Disk full")
+        mock_file.write.side_effect = OSError("Disk full")
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", mock_file, None, False)
-                except (KeyboardInterrupt, AttributeError, IOError):
-                    pass
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", mock_file, None, False)
+            except (OSError, KeyboardInterrupt, AttributeError):
+                pass
 
         # Should attempt to write to file
         mock_file.write.assert_called()

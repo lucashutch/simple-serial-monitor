@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import sys
-import shutil
 import argparse
+import shutil
+import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 try:
     MAX_WIDTH = min(shutil.get_terminal_size()[0], 80)

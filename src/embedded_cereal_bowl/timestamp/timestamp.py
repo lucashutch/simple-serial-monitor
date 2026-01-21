@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from datetime import datetime, timezone
-from typing import Tuple
+from datetime import UTC, datetime
 
 
-def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
+def parse_and_convert_time(time_input: str) -> tuple[str, str, float]:
     """
     Parses the time input (timestamp or ISO 8601 string) and
     converts it to UTC ISO string, local ISO string, and UTC timestamp.
@@ -22,7 +21,7 @@ def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
             ts /= 1000.0
 
         # Convert timestamp to an aware datetime object in UTC
-        dt_aware = datetime.fromtimestamp(ts, tz=timezone.utc)
+        dt_aware = datetime.fromtimestamp(ts, tz=UTC)
 
     except ValueError:
         # 2. If float conversion fails, attempt to parse as an ISO 8601 string
@@ -34,7 +33,7 @@ def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
 
             # If the resulting datetime object is naive, assume UTC
             if dt_aware.tzinfo is None or dt_aware.tzinfo.utcoffset(dt_aware) is None:
-                dt_aware = dt_aware.replace(tzinfo=timezone.utc)
+                dt_aware = dt_aware.replace(tzinfo=UTC)
 
         except ValueError as e:
             # Re-raise the error with a helpful message
@@ -44,7 +43,7 @@ def parse_and_convert_time(time_input: str) -> Tuple[str, str, float]:
             ) from e
 
     # Convert the aware datetime object to the target timezones
-    dt_utc = dt_aware.astimezone(timezone.utc)
+    dt_utc = dt_aware.astimezone(UTC)
     dt_local = dt_aware.astimezone(local_tz)
 
     # Format as ISO 8601 with milliseconds

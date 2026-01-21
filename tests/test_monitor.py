@@ -1,31 +1,25 @@
 """Test configuration and utilities."""
 
-import pytest
-import sys
 import os
-import serial
-from unittest.mock import Mock, patch, MagicMock, mock_open
+import sys
 from pathlib import Path
-from datetime import datetime, timezone
-from io import StringIO
-import threading
-import time
+from unittest.mock import Mock, mock_open, patch
+
+import serial
 
 # Add src directory to path for testing
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from src.embedded_cereal_bowl.monitor.monitor import (
-    parse_arguments,
-    get_serial_prefix,
-    clear_terminal,
     add_time_to_line,
+    clear_terminal,
     create_replacement_lambda,
-    send_serial_data,
-    handle_user_input,
-    wait_with_spinner,
+    get_serial_prefix,
+    parse_arguments,
     run_serial_printing_with_logs,
-    ASNI_ESCAPE_PATTERN,
+    send_serial_data,
+    wait_with_spinner,
 )
 
 
@@ -112,17 +106,15 @@ class TestClearTerminal:
 
     def test_clear_terminal_nt(self):
         """Test terminal clearing on Windows."""
-        with patch("os.name", "nt"):
-            with patch("os.system") as mock_system:
-                clear_terminal()
-                mock_system.assert_called_once_with("cls")
+        with patch("os.name", "nt"), patch("os.system") as mock_system:
+            clear_terminal()
+            mock_system.assert_called_once_with("cls")
 
     def test_clear_terminal_unix(self):
         """Test terminal clearing on Unix."""
-        with patch("os.name", "posix"):
-            with patch("os.system") as mock_system:
-                clear_terminal()
-                mock_system.assert_called_once_with("clear")
+        with patch("os.name", "posix"), patch("os.system") as mock_system:
+            clear_terminal()
+            mock_system.assert_called_once_with("clear")
 
 
 class TestAddTimeToLine:
@@ -287,14 +279,17 @@ class TestSendSerialData:
         mock_ser = Mock()
         mock_add_time = Mock(return_value="timestamp ")
 
-        with patch(
-            "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line", mock_add_time
+        with (
+            patch(
+                "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
+                mock_add_time,
+            ),
+            patch("builtins.print") as mock_print,
         ):
-            with patch("builtins.print") as mock_print:
-                result = send_serial_data(mock_ser, "test data", "epoch", None)
+            result = send_serial_data(mock_ser, "test data", "epoch", None)
 
-                assert result is True
-                mock_print.assert_called_once_with("timestamp test data\n", end="")
+            assert result is True
+            mock_print.assert_called_once_with("timestamp test data\n", end="")
 
 
 class TestWaitWithSpinner:

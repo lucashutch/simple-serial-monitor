@@ -1,10 +1,10 @@
 """Test CLI entry points and additional functionality."""
 
-import pytest
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
-from io import StringIO
+
+import pytest
 
 # Add src directory to path for testing
 src_path = Path(__file__).parent.parent / "src"
@@ -12,9 +12,6 @@ sys.path.insert(0, str(src_path))
 
 # Import the modules that contain the main functions
 import src.embedded_cereal_bowl.cli as cli
-import src.embedded_cereal_bowl.monitor.monitor as monitor
-import src.embedded_cereal_bowl.timestamp.timestamp as timestamp
-import src.embedded_cereal_bowl.formatter.formatter as formatter
 
 
 class TestCLI:
@@ -36,9 +33,8 @@ class TestCLI:
         mock_args.send = False
         mock_parse.return_value = mock_args
 
-        with patch("sys.argv", ["monitor"]):
-            with patch("builtins.print"):
-                cli.main_monitor()
+        with patch("sys.argv", ["monitor"]), patch("builtins.print"):
+            cli.main_monitor()
 
         mock_parse.assert_called_once()
         mock_run.assert_called_once()
@@ -120,10 +116,10 @@ class TestAdditionalModules:
     def test_all_main_functions_callable(self):
         """Test that all main functions are callable."""
         from src.embedded_cereal_bowl.cli import (
-            main_monitor,
-            main_timestamp,
             main_check_crlf,
             main_formatter,
+            main_monitor,
+            main_timestamp,
         )
 
         assert callable(main_monitor)

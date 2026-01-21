@@ -36,8 +36,7 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "pytest-mock>=3.10",
-    "black>=22.0",
-    "flake8>=5.0",
+    "ruff>=0.1.0",
     "mypy>=1.0",
     "bandit>=1.7",
     "build>=0.8.0",
@@ -60,9 +59,62 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
-[tool.black]
+[tool.ruff]
 line-length = 88
-target-version = ['py312']
+target-version = "py312"
+fix = true
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E", "W",
+    # pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-bandit (security)
+    "S",
+    # ruff-specific rules
+    "RUF",
+]
+
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "S101",  # Use of assert detected (allowed in tests)
+    "S311",  # Standard pseudo-random generators (not for crypto)
+    "S603",  # subprocess call (already checked manually)
+    "S605",  # Starting process with shell (safe for clear/cls)
+    "S607",  # Partial executable path (safe for clear/cls)
+    "SIM103",  # Return condition directly (keep readable)
+    "SIM105",  # Use contextlib.suppress (keep explicit try/except)
+    "SIM108",  # Use ternary operator (keep readable)
+    "B006",  # Mutable default argument (acceptable here)
+    "SIM117",  # Combine with statements (keep readable)
+    "RUF059",  # Unpacked variable not used (test convenience)
+    "E402",  # Module level import (test setup)
+    "F841",  # Local variable assigned but never used (test convenience)
+    "E712",  # Avoid equality comparisons to True (keep explicit)
+    "F821",  # Undefined name (existing code patterns)
+    "F811",  # Redefinition (existing test patterns)
+    "S108",  # Insecure temp file path (acceptable in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",  # Allow assert in tests
+    "S311",  # Allow random in tests
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.12"

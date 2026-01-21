@@ -1,15 +1,18 @@
 #! /usr/bin/env python3
 
-import serial
-import sys
-import os
 import argparse
-import regex as re
-import time
-import threading
+import os
 import select
-from datetime import datetime, timezone
-from typing import Callable, Optional, List, Any
+import sys
+import threading
+import time
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
+
+import regex as re
+import serial
+
 from ..utils.color_utils import colour_str
 
 ASNI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
@@ -104,7 +107,7 @@ def run_serial_printing_with_logs(
     log_file: str,
     log_directory: str,
     print_time: str,
-    highlight_words: Optional[List[str]] = None,
+    highlight_words: list[str] | None = None,
     enable_send: bool = False,
 ) -> None:
     filename = f"{datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}_{log_file}.txt"
@@ -121,7 +124,7 @@ def run_serial_printing_with_logs(
 
 
 def add_time_to_line(print_time: str) -> str:
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     if "epoch" in print_time:
         return f"{now_utc.timestamp():.3f} "
     elif "ms" in print_time:
@@ -167,7 +170,7 @@ def create_replacement_lambda(
 
 
 def send_serial_data(
-    ser: serial.Serial, data: str, print_time: str, file: Optional[Any]
+    ser: serial.Serial, data: str, print_time: str, file: Any | None
 ) -> bool:
     """Send data to serial port and log it if logging is enabled."""
     try:
@@ -194,7 +197,7 @@ def send_serial_data(
 def handle_user_input(
     ser: serial.Serial,
     print_time: str,
-    file: Optional[Any],
+    file: Any | None,
     stop_event: threading.Event,
 ) -> None:
     """Handle user keyboard input for sending serial data."""
@@ -208,7 +211,7 @@ def handle_user_input(
                     user_input = line.rstrip("\n")
                     if user_input:  # Don't send empty lines
                         send_serial_data(ser, user_input, print_time, file)
-        except (IOError, OSError):
+        except OSError:
             # Handle cases where stdin might not be available
             break
         except Exception as e:
@@ -218,9 +221,9 @@ def handle_user_input(
 
 def serial_loop(
     ser: serial.Serial,
-    print_time: Optional[str],
-    file: Optional[Any],
-    highlight_words: Optional[List[str]] = None,
+    print_time: str | None,
+    file: Any | None,
+    highlight_words: list[str] | None = None,
     enable_send: bool = False,
 ) -> None:
     # Create stop event for thread management
@@ -287,9 +290,9 @@ def wait_with_spinner(serial_port_name: str, count: int) -> int:
 def run_serial_printing(
     serial_port_name: str,
     baud: int,
-    print_time: Optional[str] = None,
-    file: Optional[Any] = None,
-    highlight_words: Optional[List[str]] = None,
+    print_time: str | None = None,
+    file: Any | None = None,
+    highlight_words: list[str] | None = None,
     enable_send: bool = False,
 ) -> None:
     count = 0

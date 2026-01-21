@@ -1,8 +1,8 @@
 """Test color utility functionality."""
 
-import pytest
+from colorama import Back, Fore, Style
+
 from src.embedded_cereal_bowl.utils.color_utils import colour_str
-from colorama import Fore, Back, Style
 
 
 class TestColourStr:

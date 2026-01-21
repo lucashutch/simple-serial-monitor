@@ -1,10 +1,11 @@
 """Console script entry points for embedded-cereal-bowl package."""
 
 import sys
-from .monitor import main as monitor_main
-from .formatter import main as formatter_main
-from .timestamp import main as timestamp_main
+
 from . import check_crlf
+from .formatter import main as formatter_main
+from .monitor import main as monitor_main
+from .timestamp import main as timestamp_main
 
 
 def main_monitor() -> None:
