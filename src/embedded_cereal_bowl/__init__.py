@@ -9,6 +9,6 @@ and line ending checking, designed to simplify common embedded development tasks
 __version__ = "0.1.0"
 __author__ = "Lucas Hutch"
 
-from . import monitor, formatter, timestamp, utils
+from . import formatter, monitor, timestamp, utils
 
-__all__ = ["monitor", "formatter", "timestamp", "utils"]
+__all__ = ["formatter", "monitor", "timestamp", "utils"]

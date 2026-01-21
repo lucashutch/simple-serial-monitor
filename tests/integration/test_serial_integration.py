@@ -1,12 +1,13 @@
 """Integration tests with mocked serial ports."""
 
 import os
-import pytest
 import sys
 import threading
 import time
-from unittest.mock import Mock, patch, MagicMock, mock_open
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add src directory to path for testing
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -14,8 +15,8 @@ sys.path.insert(0, str(src_path))
 
 from src.embedded_cereal_bowl.monitor.monitor import (
     handle_user_input,
-    serial_loop,
     run_serial_printing,
+    serial_loop,
 )
 
 
@@ -127,15 +128,17 @@ class TestSerialLoopIntegration:
 
         stop_event = threading.Event()
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", None, None, True)
-                except (KeyboardInterrupt, AttributeError):
-                    pass  # Expected to exit
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", None, None, True)
+            except (KeyboardInterrupt, AttributeError):
+                pass  # Expected to exit
 
         # Verify input thread was started
         mock_thread.assert_called_once()
@@ -156,15 +159,17 @@ class TestSerialLoopIntegration:
         mock_replacement.return_value = lambda m: "highlighted_error"
         mock_colour.return_value = "colored text"
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.add_time_to_line",
                 return_value="",
-            ):
-                try:
-                    serial_loop(mock_ser, "epoch", None, ["error", "warning"], False)
-                except (KeyboardInterrupt, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                serial_loop(mock_ser, "epoch", None, ["error", "warning"], False)
+            except (KeyboardInterrupt, AttributeError):
+                pass
 
         # Verify replacement function was called for highlighting
         mock_replacement.assert_called()
@@ -227,16 +232,16 @@ class TestRunSerialPrintingIntegration:
             mock_serial.return_value.__enter__.return_value = mock_ser
             mock_serial.return_value.__exit__.return_value = None
 
-            with patch("builtins.print"):
-                with patch(
-                    "src.embedded_cereal_bowl.monitor.monitor.wait_with_spinner"
-                ):
-                    try:
-                        run_serial_printing(
-                            "/dev/ttyUSB0", 115200, "epoch", None, None, False
-                        )
-                    except KeyboardInterrupt:
-                        pass  # Expected in test
+            with (
+                patch("builtins.print"),
+                patch("src.embedded_cereal_bowl.monitor.monitor.wait_with_spinner"),
+            ):
+                try:
+                    run_serial_printing(
+                        "/dev/ttyUSB0", 115200, "epoch", None, None, False
+                    )
+                except KeyboardInterrupt:
+                    pass  # Expected in test
 
         # Verify serial port was opened with correct parameters
         mock_serial.assert_called_with("/dev/ttyUSB0", 115200, timeout=0.05)
@@ -289,14 +294,16 @@ class TestRunSerialPrintingIntegration:
 
         mock_colour.return_value = "colored message"
 
-        with patch(
-            "src.embedded_cereal_bowl.monitor.monitor.serial.Serial", mock_serial
-        ):
-            with patch(
+        with (
+            patch(
+                "src.embedded_cereal_bowl.monitor.monitor.serial.Serial", mock_serial
+            ),
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.wait_with_spinner",
                 return_value=1,
-            ):
-                run_serial_printing("/dev/ttyUSB0", 115200, "epoch", None, None, False)
+            ),
+        ):
+            run_serial_printing("/dev/ttyUSB0", 115200, "epoch", None, None, False)
 
         # Should exit gracefully
         mock_exit.assert_called_once_with(0)
@@ -314,16 +321,18 @@ class TestRunSerialPrintingIntegration:
 
         highlight_words = ["error", "warning", "debug"]
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.serial.Serial", mock_serial
-            ):
-                try:
-                    run_serial_printing(
-                        "/dev/ttyUSB0", 115200, "epoch", None, highlight_words, False
-                    )
-                except (KeyError, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                run_serial_printing(
+                    "/dev/ttyUSB0", 115200, "epoch", None, highlight_words, False
+                )
+            except (KeyError, AttributeError):
+                pass
 
         # Verify serial_loop was called with highlight words
         mock_loop.assert_called()
@@ -342,16 +351,16 @@ class TestRunSerialPrintingIntegration:
         mock_serial.Serial.return_value.__enter__.return_value = mock_serial
         mock_spinner.return_value = 1
 
-        with patch("builtins.print") as mock_print:
-            with patch(
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
                 "src.embedded_cereal_bowl.monitor.monitor.serial.Serial", mock_serial
-            ):
-                try:
-                    run_serial_printing(
-                        "/dev/ttyUSB0", 115200, "epoch", None, None, True
-                    )
-                except (KeyError, AttributeError):
-                    pass
+            ),
+        ):
+            try:
+                run_serial_printing("/dev/ttyUSB0", 115200, "epoch", None, None, True)
+            except (KeyError, AttributeError):
+                pass
 
         # Verify serial_loop was called with send enabled
         mock_loop.assert_called()

@@ -1,4 +1,4 @@
-from colorama import Fore, Style, Back
+from colorama import Back, Fore, Style
 
 
 class colour_str:

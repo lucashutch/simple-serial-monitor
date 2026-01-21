@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import concurrent.futures
+import difflib
 import shutil
 import subprocess  # nosec B404
 import sys
-import concurrent.futures
-import difflib
+from collections.abc import Generator
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Any, Set, Generator
+from typing import Any
+
 from ..utils.color_utils import colour_str
 
 try:
@@ -15,7 +17,7 @@ try:
 except (ValueError, OSError):
     MAX_WIDTH = 80
 
-FORMATTER_CONFIG: Dict[str, Dict[str, Any]] = {
+FORMATTER_CONFIG: dict[str, dict[str, Any]] = {
     "clang-format": {
         "command": "clang-format",
         "file_extensions": {".h", ".hpp", ".hxx", ".hh", ".c", ".cpp", ".cxx", ".cc"},
@@ -29,7 +31,7 @@ FORMATTER_CONFIG: Dict[str, Dict[str, Any]] = {
 }
 
 
-def resolve_ignore_dirs(root: Path, patterns: List[str]) -> Set[Path]:
+def resolve_ignore_dirs(root: Path, patterns: list[str]) -> set[Path]:
     """
     Resolves a list of ignore patterns (e.g., 'build', '**/vendor', '*/temp')
     into a set of absolute Path objects.
@@ -44,7 +46,7 @@ def resolve_ignore_dirs(root: Path, patterns: List[str]) -> Set[Path]:
 
 
 def scan_directory(
-    root_path: Path, excluded_paths: Set[Path]
+    root_path: Path, excluded_paths: set[Path]
 ) -> Generator[Path, None, None]:
     """
     Recursively yields files, skipping excluded directories.
@@ -67,11 +69,11 @@ def scan_directory(
 
 
 def find_all_files(
-    root_dir: Path, ignore_patterns: List[str], verbose: bool
-) -> Dict[Path, Dict[str, Any]]:
+    root_dir: Path, ignore_patterns: list[str], verbose: bool
+) -> dict[Path, dict[str, Any]]:
     """Finds all files for all configured formatters, respecting ignore globs."""
 
-    files_with_config: Dict[Path, Dict[str, Any]] = {}
+    files_with_config: dict[Path, dict[str, Any]] = {}
 
     if not root_dir.is_dir():
         msg = f"Error: Root directory '{root_dir}' not found."
@@ -110,7 +112,7 @@ def find_all_files(
 
 def process_one_file(
     file_path: Path, command: str, check: bool
-) -> Tuple[str, bool, Optional[str]]:
+) -> tuple[str, bool, str | None]:
     """
     Worker function to either check or format a single file.
     In check mode, it returns a diff; otherwise, it formats in-place.
@@ -158,9 +160,9 @@ def process_one_file(
 
 
 def process_files_parallel(
-    files_with_config: Dict[Path, Dict[str, Any]],
+    files_with_config: dict[Path, dict[str, Any]],
     project_root: Path,
-    jobs: Optional[int],
+    jobs: int | None,
     verbose: bool,
     check: bool,
 ) -> None:
@@ -228,7 +230,7 @@ def process_files_parallel(
 def run_project_tasks(
     root_dir: Path,
     ignore_patterns: list[str] = [],
-    jobs: Optional[int] = None,
+    jobs: int | None = None,
     check: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -319,8 +321,8 @@ def main() -> None:
 
 def format_files(
     root_dir: str = ".",
-    ignore_patterns: Optional[List[str]] = None,
-    jobs: Optional[int] = None,
+    ignore_patterns: list[str] | None = None,
+    jobs: int | None = None,
     verbose: bool = False,
 ) -> None:
     """Format files in a directory (for programmatic use)."""
@@ -337,8 +339,8 @@ def format_files(
 
 def check_format(
     root_dir: str = ".",
-    ignore_patterns: Optional[List[str]] = None,
-    jobs: Optional[int] = None,
+    ignore_patterns: list[str] | None = None,
+    jobs: int | None = None,
     verbose: bool = False,
 ) -> None:
     """Check file formatting in a directory (for programmatic use)."""

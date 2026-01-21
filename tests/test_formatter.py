@@ -1,20 +1,22 @@
 """Test code formatter functionality."""
 
-import pytest
-import tempfile
 import subprocess
+import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
+import pytest
+
 from src.embedded_cereal_bowl.formatter.formatter import (
-    resolve_ignore_dirs,
-    scan_directory,
-    find_all_files,
-    process_one_file,
     FORMATTER_CONFIG,
     check_for_tools,
-    run_project_tasks,
-    format_files,
     check_format,
+    find_all_files,
+    format_files,
+    process_one_file,
+    resolve_ignore_dirs,
+    run_project_tasks,
+    scan_directory,
 )
 
 
@@ -205,11 +207,10 @@ class TestFindAllFiles:
         """Test with nonexistent root directory."""
         root = Path("/nonexistent/directory")
 
-        with patch("builtins.print") as mock_print:
-            with pytest.raises(SystemExit):
-                find_all_files(root, [], False)
-                mock_exit.assert_called_once_with(1)
-                mock_print.assert_called()
+        with patch("builtins.print") as mock_print, pytest.raises(SystemExit):
+            find_all_files(root, [], False)
+            mock_exit.assert_called_once_with(1)
+            mock_print.assert_called()
 
 
 class TestProcessOneFile:
@@ -398,36 +399,40 @@ class TestInterfaceFunctions:
 
     def test_format_files(self):
         """Test format_files interface function."""
-        with patch(
-            "src.embedded_cereal_bowl.formatter.formatter.check_for_tools"
-        ) as mock_check:
-            with patch(
+        with (
+            patch(
+                "src.embedded_cereal_bowl.formatter.formatter.check_for_tools"
+            ) as mock_check,
+            patch(
                 "src.embedded_cereal_bowl.formatter.formatter.run_project_tasks"
-            ) as mock_run:
-                format_files("/test", ["build"], 2, True)
-                mock_check.assert_called_once()
-                mock_run.assert_called_once_with(
-                    root_dir=Path("/test").resolve(),
-                    ignore_patterns=["build"],
-                    jobs=2,
-                    check=False,
-                    verbose=True,
-                )
+            ) as mock_run,
+        ):
+            format_files("/test", ["build"], 2, True)
+            mock_check.assert_called_once()
+            mock_run.assert_called_once_with(
+                root_dir=Path("/test").resolve(),
+                ignore_patterns=["build"],
+                jobs=2,
+                check=False,
+                verbose=True,
+            )
 
     def test_check_format(self):
         """Test check_format interface function."""
-        with patch(
-            "src.embedded_cereal_bowl.formatter.formatter.check_for_tools"
-        ) as mock_check:
-            with patch(
+        with (
+            patch(
+                "src.embedded_cereal_bowl.formatter.formatter.check_for_tools"
+            ) as mock_check,
+            patch(
                 "src.embedded_cereal_bowl.formatter.formatter.run_project_tasks"
-            ) as mock_run:
-                check_format("/test", ["vendor"], None, False)
-                mock_check.assert_called_once()
-                mock_run.assert_called_once_with(
-                    root_dir=Path("/test").resolve(),
-                    ignore_patterns=["vendor"],
-                    jobs=None,
-                    check=True,
-                    verbose=False,
-                )
+            ) as mock_run,
+        ):
+            check_format("/test", ["vendor"], None, False)
+            mock_check.assert_called_once()
+            mock_run.assert_called_once_with(
+                root_dir=Path("/test").resolve(),
+                ignore_patterns=["vendor"],
+                jobs=None,
+                check=True,
+                verbose=False,
+            )

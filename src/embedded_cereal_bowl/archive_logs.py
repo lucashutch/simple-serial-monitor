@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+import argparse
+import shutil
 import zipfile
 from datetime import datetime
 from pathlib import Path
-import shutil
-import argparse
 
 
 def cleanup_logs(log_path: Path) -> None:
@@ -52,7 +52,7 @@ def main() -> None:
     """Main entry point for archive logs utility."""
     parser = argparse.ArgumentParser(
         description=(
-            "Archive a specified log directory with a timestamp and " "then delete it."
+            "Archive a specified log directory with a timestamp and then delete it."
         )
     )
 

@@ -1,7 +1,9 @@
 """Test timestamp conversion functionality."""
 
+from datetime import datetime
+
 import pytest
-from datetime import datetime, timezone
+
 from src.embedded_cereal_bowl.timestamp.timestamp import parse_and_convert_time
 
 

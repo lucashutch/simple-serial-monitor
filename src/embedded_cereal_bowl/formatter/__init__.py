@@ -1,5 +1,5 @@
 """Code formatting utilities."""
 
-from .formatter import main, format_files, check_format
+from .formatter import check_format, format_files, main
 
-__all__ = ["main", "format_files", "check_format"]
+__all__ = ["check_format", "format_files", "main"]
