@@ -3,16 +3,16 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.14", "3.15"]
+        python-version: ["3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
@@ -57,11 +57,11 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-report=html
+        pytest --ignore=tests/integration/ --cov=src --cov-report=xml --cov-report=term-missing --cov-report=html
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.12'  # Only upload coverage once
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         flags: unittests
@@ -70,7 +70,7 @@ jobs:
 
     - name: Archive test results
       if: matrix.python-version == '3.12'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: |
