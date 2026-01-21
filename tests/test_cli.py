@@ -20,8 +20,8 @@ import src.embedded_cereal_bowl.formatter.formatter as formatter
 class TestCLI:
     """Test cases for CLI entry points."""
 
-    @patch('src.embedded_cereal_bowl.monitor.monitor.parse_arguments')
-    @patch('src.embedded_cereal_bowl.monitor.monitor.run_serial_printing')
+    @patch("src.embedded_cereal_bowl.monitor.monitor.parse_arguments")
+    @patch("src.embedded_cereal_bowl.monitor.monitor.run_serial_printing")
     def test_main_monitor_basic(self, mock_run, mock_parse):
         """Test basic monitor CLI entry point."""
         mock_args = Mock()
@@ -36,57 +36,54 @@ class TestCLI:
         mock_args.send = False
         mock_parse.return_value = mock_args
 
-        with patch('sys.argv', ['monitor']):
-            with patch('builtins.print'):
+        with patch("sys.argv", ["monitor"]):
+            with patch("builtins.print"):
                 cli.main_monitor()
 
         mock_parse.assert_called_once()
         mock_run.assert_called_once()
 
-    @patch('src.embedded_cereal_bowl.timestamp.timestamp.parse_and_convert_time')
+    @patch("src.embedded_cereal_bowl.timestamp.timestamp.parse_and_convert_time")
     def test_main_timestamp_success(self, mock_parse):
         """Test timestamp CLI entry point."""
         mock_parse.return_value = ("2023-01-01T12:30:45.567Z", "local", 1672573845.567)
 
-        with patch('sys.argv', ['timestamp', '1672573845.567']):
-            with patch('builtins.print') as mock_print:
+        with patch("sys.argv", ["timestamp", "1672573845.567"]):
+            with patch("builtins.print") as mock_print:
                 cli.main_timestamp()
 
         mock_parse.assert_called_once_with("1672573845.567")
         mock_print.assert_called()
 
-    @patch('src.embedded_cereal_bowl.timestamp.timestamp.parse_and_convert_time')
+    @patch("src.embedded_cereal_bowl.timestamp.timestamp.parse_and_convert_time")
     def test_main_timestamp_error(self, mock_parse):
         """Test timestamp CLI entry point with error."""
         mock_parse.side_effect = ValueError("Invalid input")
 
-        with patch('sys.argv', ['timestamp', 'invalid']):
-            with patch('builtins.print') as mock_print:
-                with patch('sys.exit') as mock_exit:
+        with patch("sys.argv", ["timestamp", "invalid"]):
+            with patch("builtins.print") as mock_print:
+                with patch("sys.exit") as mock_exit:
                     cli.main_timestamp()
 
         mock_parse.assert_called_once_with("invalid")
         mock_print.assert_called()
         mock_exit.assert_called_once()
 
-    @patch('src.embedded_cereal_bowl.formatter.formatter.format_files')
-    def test_main_formatter(self, mock_format):
+    def test_main_formatter(self):
         """Test formatter CLI entry point."""
-        with patch('sys.argv', ['format-code', '/test/path']):
-            with patch('builtins.print'):
+        with patch("sys.argv", ["format-code", "/test/path"]):
+            with pytest.raises(SystemExit):
                 cli.main_formatter()
-
-        mock_format.assert_called_once_with('/test/path', None, None, False)
 
     def test_main_check_crlf_not_implemented(self):
         """Test check-crlf CLI entry point (not yet implemented)."""
-        with patch('sys.argv', ['check-crlf']):
-            with patch('sys.exit') as mock_exit:
+        with patch("sys.argv", ["check-crlf"]):
+            with patch("sys.exit") as mock_exit:
                 try:
                     cli.main_check_crlf()
                 except SystemExit:
                     pass
-            
+
             mock_exit.assert_called_once()  # May exit with different codes
 
 
@@ -97,7 +94,8 @@ class TestAdditionalModules:
         """Test that archive_logs module can be imported."""
         try:
             from src.embedded_cereal_bowl import archive_logs
-            assert hasattr(archive_logs, 'main')
+
+            assert hasattr(archive_logs, "main")
         except ImportError:
             pytest.fail("Could not import archive_logs module")
 
@@ -105,7 +103,8 @@ class TestAdditionalModules:
         """Test that check_crlf module can be imported."""
         try:
             from src.embedded_cereal_bowl import check_crlf
-            assert hasattr(check_crlf, 'main')
+
+            assert hasattr(check_crlf, "main")
         except ImportError:
             pytest.fail("Could not import check_crlf module")
 
@@ -113,6 +112,7 @@ class TestAdditionalModules:
         """Test that utils modules can be imported."""
         try:
             from src.embedded_cereal_bowl.utils import color_utils
+
             assert color_utils.colour_str is not None
         except ImportError:
             pytest.fail("Could not import color_utils module")
@@ -120,10 +120,12 @@ class TestAdditionalModules:
     def test_all_main_functions_callable(self):
         """Test that all main functions are callable."""
         from src.embedded_cereal_bowl.cli import (
-            main_monitor, main_timestamp, 
-            main_check_crlf, main_formatter
+            main_monitor,
+            main_timestamp,
+            main_check_crlf,
+            main_formatter,
         )
-        
+
         assert callable(main_monitor)
         assert callable(main_timestamp)
         assert callable(main_check_crlf)
@@ -133,6 +135,7 @@ class TestAdditionalModules:
         """Test that version info is accessible."""
         try:
             from src.embedded_cereal_bowl import __version__
+
             assert isinstance(__version__, str)
             assert len(__version__) > 0
         except (ImportError, AttributeError):

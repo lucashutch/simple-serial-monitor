@@ -62,17 +62,17 @@ class TestColourStr:
         result = str(cs_red.back_red())
         expected = f"{Back.RED}test{Style.RESET_ALL}"
         assert result == expected
-        
+
         cs_green = colour_str("test")
         result = str(cs_green.back_green())
         expected = f"{Back.GREEN}test{Style.RESET_ALL}"
         assert result == expected
-        
+
         cs_blue = colour_str("test")
         result = str(cs_blue.back_blue())
         expected = f"{Back.BLUE}test{Style.RESET_ALL}"
         assert result == expected
-        
+
         cs_yellow = colour_str("test")
         result = str(cs_yellow.back_yellow())
         expected = f"{Back.YELLOW}test{Style.RESET_ALL}"
@@ -84,7 +84,7 @@ class TestColourStr:
         result = str(cs_dim.dim())
         expected = f"{Style.DIM}test{Style.RESET_ALL}"
         assert result == expected
-        
+
         cs_bright = colour_str("test")
         result = str(cs_bright.bright())
         expected = f"{Style.BRIGHT}test{Style.RESET_ALL}"
@@ -107,12 +107,12 @@ class TestColourStr:
     def test_method_chaining_returns_self(self):
         """Test that methods return self for chaining."""
         cs = colour_str("test")
-        
+
         # Each method should return the same object (allowing chaining)
         result1 = cs.red()
         result2 = result1.bright()
         result3 = result2.back_green()
-        
+
         assert result1 is cs
         assert result2 is cs
         assert result3 is cs
@@ -134,23 +134,37 @@ class TestColourStr:
     def test_reuse_after_string_conversion(self):
         """Test that object can be reused after string conversion."""
         cs = colour_str("test")
-        
+
         # First conversion
         result1 = str(cs.red())
         expected1 = f"{Fore.RED}test{Style.RESET_ALL}"
         assert result1 == expected1
-        
+
         # Note: The colour_str class accumulates codes, so this is expected behavior
         # Second conversion with new color - will include previous red code (order matters)
         result2 = str(cs.blue())
-        expected2 = f"{Fore.RED}{Fore.BLUE}test{Style.RESET_ALL}"  # red added first, then blue
+        expected2 = (
+            f"{Fore.RED}{Fore.BLUE}test{Style.RESET_ALL}"  # red added first, then blue
+        )
         assert result2 == expected2
 
     def test_all_colors_and_styles_combination(self):
         """Test combining all available colors and styles."""
         cs = colour_str("test")
-        result = str(cs.red().green().blue().yellow().black().back_red().back_green().back_blue().back_yellow().dim().bright())
-        
+        result = str(
+            cs.red()
+            .green()
+            .blue()
+            .yellow()
+            .black()
+            .back_red()
+            .back_green()
+            .back_blue()
+            .back_yellow()
+            .dim()
+            .bright()
+        )
+
         # Should contain all the style codes
         assert Fore.RED in result
         assert Fore.GREEN in result
@@ -170,7 +184,7 @@ class TestColourStr:
         """Test that the order of applied codes is preserved."""
         cs = colour_str("test")
         result = str(cs.red().dim().back_green())
-        
+
         # Order should be: red, dim, back_green
         expected = f"{Fore.RED}{Style.DIM}{Back.GREEN}test{Style.RESET_ALL}"
         assert result == expected
