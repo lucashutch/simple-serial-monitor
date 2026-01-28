@@ -405,8 +405,8 @@ Issue Report Template:
 ```
 
 ### Community Resources
-- [GitHub Issues](https://github.com/lucashutch/simple-serial-monitor/issues)
-- [Discussions](https://github.com/lucashutch/simple-serial-monitor/discussions)
-- [Wiki](https://github.com/lucashutch/simple-serial-monitor/wiki)
+- [GitHub Issues](https://github.com/lucashutch/embedded-cereal-bowl/issues)
+- [Discussions](https://github.com/lucashutch/embedded-cereal-bowl/discussions)
+- [Wiki](https://github.com/lucashutch/embedded-cereal-bowl/wiki)
 
 Remember to check the [Examples Directory](embedded-projects.md) for working configurations and [Installation Guide](installation.md) for setup issues.

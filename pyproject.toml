@@ -49,9 +49,9 @@ check-crlf = "embedded_cereal_bowl.cli:main_check_crlf"
 format-code = "embedded_cereal_bowl.cli:main_formatter"
 
 [project.urls]
-Homepage = "https://github.com/lucashutch/simple-serial-monitor"
-Repository = "https://github.com/lucashutch/simple-serial-monitor"
-Issues = "https://github.com/lucashutch/simple-serial-monitor/issues"
+Homepage = "https://github.com/lucashutch/embedded-cereal-bowl"
+Repository = "https://github.com/lucashutch/embedded-cereal-bowl"
+Issues = "https://github.com/lucashutch/embedded-cereal-bowl/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,7 +9,7 @@ Comprehensive installation instructions for Embedded Cereal Bowl tools.
 pip install embedded-cereal-bowl
 
 # Install latest from GitHub
-pip install git+https://github.com/lucashutch/simple-serial-monitor.git
+pip install git+https://github.com/lucashutch/embedded-cereal-bowl.git
 ```
 
 ## 📦 System Requirements
@@ -41,8 +41,8 @@ pip install --upgrade embedded-cereal-bowl
 ### Method 2: Development Installation
 ```bash
 # Clone repository
-git clone https://github.com/lucashutch/simple-serial-monitor.git
-cd simple-serial-monitor
+git clone https://github.com/lucashutch/embedded-cereal-bowl.git
+cd embedded-cereal-bowl
 
 # Create virtual environment
 python3 -m venv venv
@@ -55,21 +55,21 @@ pip install -e ".[dev]"
 ### Method 3: Direct from Git
 ```bash
 # Install latest main branch
-pip install git+https://github.com/lucashutch/simple-serial-monitor.git@main
+pip install git+https://github.com/lucashutch/embedded-cereal-bowl.git@main
 
 # Install specific version
-pip install git+https://github.com/lucashutch/simple-serial-monitor.git@v0.1.0
+pip install git+https://github.com/lucashutch/embedded-cereal-bowl.git@v0.1.0
 
 # Install development version
-pip install git+https://github.com/lucashutch/simple-serial-monitor.git@develop
+pip install git+https://github.com/lucashutch/embedded-cereal-bowl.git@develop
 ```
 
 ### Method 4: From Source Archive
 ```bash
 # Download and extract
-wget https://github.com/lucashutch/simple-serial-monitor/archive/refs/tags/v0.1.0.tar.gz
+wget https://github.com/lucashutch/embedded-cereal-bowl/archive/refs/tags/v0.1.0.tar.gz
 tar -xzf v0.1.0.tar.gz
-cd simple-serial-monitor-0.1.0
+cd embedded-cereal-bowl-0.1.0
 
 # Install from source
 pip install .
@@ -331,7 +331,7 @@ After installation:
 If you encounter installation issues:
 
 1. Check [Troubleshooting Guide](examples/troubleshooting.md)
-2. Search [GitHub Issues](https://github.com/lucashutch/simple-serial-monitor/issues)
+2. Search [GitHub Issues](https://github.com/lucashutch/embedded-cereal-bowl/issues)
 3. Create a new issue with:
    - Operating system and version
    - Python version (`python --version`)
